@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
           
       - name: Galileus Enterprise Pipeline
-        uses: binaryjack/galileus-action@v1
+        uses: Codernic-dev/galileus-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           license_key: ${{ secrets.GALILEUS_ENTERPRISE_KEY }}
