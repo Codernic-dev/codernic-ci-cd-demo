@@ -1,0 +1,9 @@
+{
+  "mode": "enforce",
+  "dlp": {
+    "custom_regex_rules": {
+      "CUSTOM_NO_UNWRAP_IN_PROD": "\\.unwrap\\(\\)",
+      "CUSTOM_NO_INSECURE_HTTP": "http://[a-zA-Z0-9]"
+    }
+  }
+}
