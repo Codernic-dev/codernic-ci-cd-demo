@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+[[test]]
+name = "test_pay_ptp_benchmark_ptp"
+path = "tests/test_payment_engine_ptp.rs"
