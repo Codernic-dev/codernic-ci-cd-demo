@@ -30,7 +30,21 @@
   </upstream_files>
 
   <upstream_contract>
-    <![CDATA[Dependencies satisfied: ["STEP-PAYMENT-ENGINE"]. Code slot: pay_ptp_benchmark]]>
+    <![CDATA[Dependencies satisfied: ["STEP-PAYMENT-ENGINE"]. Code slot: pay_ptp_benchmark
+
+Extracted Upstream Signatures:
+// File: backend-rust/src/engine.rs
+pub enum PaymentState {
+pub enum PaymentEvent {
+pub struct AuditEntry {
+pub struct ApprovalStateMachine {
+pub fn new(auto_approval_limit_cents: u64) -> Self {
+pub fn evaluate_tx(&mut self, tx_id: u64, amount_cents: u64, clock_ms: u64) -> PaymentState {
+pub fn apply_event(
+pub fn audit_entries_for(&self, tx_id: u64) -> Vec<AuditEntry> {
+pub fn pay_state_machine() {
+
+<commons_catalog></commons_catalog>]]>
   </upstream_contract>
 
   <ptp_invariants>

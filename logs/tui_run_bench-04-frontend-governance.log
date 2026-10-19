@@ -17,3 +17,10 @@
 ==> COE RUN: Starting autonomous execution engine for story 'bench-04-frontend-governance'
 [-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)
 ==> COE RUN: Starting autonomous execution engine for story 'bench-04-frontend-governance'
+==> COE RUN: Starting autonomous execution engine for story 'bench-04-frontend-governance'
+==> COE RUN: Starting autonomous execution engine for story 'bench-04-frontend-governance'
+[-] Run execution failed: Execution error: Story '/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-04-frontend-governance' is already locked by active run: pid=1818816
+run_id=run_1792410861468934
+timestamp=2026-10-19T11:54:21.469201241+00:00
+[-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)
+==> COE RUN: Starting autonomous execution engine for story 'bench-04-frontend-governance'
