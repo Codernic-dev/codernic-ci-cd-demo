@@ -1,0 +1,38 @@
+# Feature Specification Blueprint (FSB)
+## Niveau 1 : Sonde Sante et Metadonnees Système (Sanity Smoke Test)
+
+```yaml
+story_slug: "bench-01-core-probe"
+version: "1.0.0"
+target_package: "backend-rust"
+category: "BENCHMARK_LEVEL_1_NOMINAL"
+complexity: "LOW"
+estimated_steps: 2
+```
+
+### 1. Contexte & Enjeux
+
+Ce banc d'essai est le cas nominal de reference (Niveau 1). Il valide l'orchestration COE sur un cas simple, propre et lineaire :
+- Generation d'un contrat atomique sans piege.
+- Verification de la compilation stricte sans allocation dynamique superflue.
+- Test unitaire d'exactitude physique.
+- Validation du passage nominal en Strike 0 (modele Flash sans escalade).
+
+### 2. Table des Etapes Atomiques
+
+| Step ID | Code Slot | Target Files | Dependencies | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| STEP-PROBE-TYPES | probe_types | backend-rust/src/probe_types.rs | None | Structures d'etat de sante, statut HTTP et metadonnees |
+| STEP-PROBE-CHECK | probe_health_check | backend-rust/src/probe_check.rs | STEP-PROBE-TYPES | Fonction d'evaluation d'integrite systeme et uptime |
+
+### 3. Criteres de Verification CompileGate
+
+- Compilation Rust stricte : `cargo check --target-dir target_cos` sans aucun avertissement.
+- Invariants Pirsig : fichiers <= 200 lignes, fonctions <= 40 lignes, structures <= 8 champs.
+- Tests physiques validant les etats nominal, degrade et critique.
+
+### 4. Cibles d'Evaluation & Comportement Nominal
+
+- Evaluation du passage direct au premier essai (Strike 0).
+- Absence de derive verbeuse ou de dependances non demandees.
+- Validation que le modele Flash execute le contrat en moins de 15 secondes avec economie maximale de tokens.

@@ -1,0 +1,20 @@
+<!-- CODERNIC_BLAKE3_SEAL: 53091b9893d956b1df6bcb75d4bada0550801d2ba117d0662a6143d047168f72 -->
+{
+  "code_slot": "pay_ptp_benchmark",
+  "evidence": [
+    {
+      "command": "coe verify",
+      "details": "Step verification passed via coe CLI",
+      "duration_ms": 0,
+      "exit_code": 0,
+      "gate_id": "frontend_physical_test",
+      "passed": true,
+      "stdout_blake3": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "package": "frontend",
+  "status": "VERIFIED",
+  "step_id": "STEP-PAYMENT-BENCH",
+  "story_slug": "bench-payment-validator",
+  "tests_passed": 1
+}
