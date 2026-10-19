@@ -1,0 +1,19 @@
+{
+  "code_slot": "pay_state_machine",
+  "evidence": [
+    {
+      "command": "coe verify",
+      "details": "Step verification passed via coe CLI",
+      "duration_ms": 0,
+      "exit_code": 0,
+      "gate_id": "physical_test",
+      "passed": true,
+      "stdout_blake3": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "package": "rust",
+  "status": "VERIFIED",
+  "step_id": "STEP-PAYMENT-ENGINE",
+  "story_slug": "bench-payment-validator",
+  "tests_passed": 1
+}

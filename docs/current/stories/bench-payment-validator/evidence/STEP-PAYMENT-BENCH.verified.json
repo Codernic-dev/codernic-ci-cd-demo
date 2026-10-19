@@ -1,19 +1,7 @@
 {
-  "code_slot": "pay_ptp_benchmark",
-  "evidence": [
-    {
-      "command": "coe verify",
-      "details": "Step verification passed via coe CLI",
-      "duration_ms": 0,
-      "exit_code": 0,
-      "gate_id": "frontend_physical_test",
-      "passed": true,
-      "stdout_blake3": "0000000000000000000000000000000000000000000000000000000000000000"
-    }
-  ],
-  "package": "frontend",
-  "status": "VERIFIED",
+  "compilegate": "PASSED",
+  "duration_ms": 244,
+  "scope_guard": "PASSED",
   "step_id": "STEP-PAYMENT-BENCH",
-  "story_slug": "bench-payment-validator",
-  "tests_passed": 1
+  "verified_at": "2026-10-19T04:21:52.676835256+00:00"
 }
