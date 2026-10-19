@@ -25,7 +25,7 @@
   </upstream_files>
 
   <upstream_contract>
-    <![CDATA[Dependencies satisfied: []. Code slot: probe_types]]>
+    <![CDATA[pub fn probe_types() {]]>
   </upstream_contract>
 
   <ptp_invariants>

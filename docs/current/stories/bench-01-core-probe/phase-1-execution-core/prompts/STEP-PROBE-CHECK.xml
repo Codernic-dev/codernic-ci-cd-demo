@@ -26,7 +26,7 @@
   </upstream_files>
 
   <upstream_contract>
-    <![CDATA[Dependencies satisfied: ["STEP-PROBE-TYPES"]. Code slot: probe_health_check]]>
+    <![CDATA[pub fn probe_health_check() {]]>
   </upstream_contract>
 
   <ptp_invariants>
