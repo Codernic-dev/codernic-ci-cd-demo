@@ -1,0 +1,18 @@
+==> COE INIT: Story 'bench-05-sql-acid-transactions'
+==> COE PLAN: Generating physical artifacts for 'bench-05-sql-acid-transactions'
+  [+] Ingesting BSF from: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-05-sql-acid-transactions/bsf-master-bench-05-sql-acid-transactions.sealed"
+  [+] Extracted 3 atomic implementation steps.
+  [+] DAG acyclicity validated: 3 steps ordered via Kahn algorithm.
+  [+] Master Implementation Manifest written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-05-sql-acid-transactions/master_atomic_implementation_manifest.md"
+  [+] Dependency Graph (Mermaid) written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-05-sql-acid-transactions/dependency_graph.md"
+  [+] Master File References written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-05-sql-acid-transactions/master_file_references.md"
+  [+] Pre-generated 3 XML dispatch contracts.
+  [*] Locking AST Scaffolding: Creating clean compilable skeletons...
+  [+] AST Skeletons created: 0 new source files.
+  [*] Verifying AST Contract with cargo check...
+  [+] CompileGate AST Contract Locked: cargo check PASSED (0 errors).
+==> Story 'bench-05-sql-acid-transactions' planning completed successfully.
+==> COE RUN: Starting autonomous execution engine for story 'bench-05-sql-acid-transactions'
+[-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)
+==> COE RUN: Starting autonomous execution engine for story 'bench-05-sql-acid-transactions'
+[-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)

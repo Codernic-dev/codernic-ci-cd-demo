@@ -1,0 +1,2795 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-FE-TYPES" code_slot="fe_audit_types">
+  <metadata>
+    <step_id>STEP-FE-TYPES</step_id>
+    <code_slot>fe_audit_types</code_slot>
+    <story_slug>bench-04-frontend-governance</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Interfaces TypeScript strictes sans aucun recours a `any`</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">frontend-react/src/types_audit.ts</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_fe_audit_types_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+  </dependencies>
+
+  <upstream_files>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[Dependencies satisfied: []. Code slot: fe_audit_types]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'fe_audit_types' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <cpk_guides>
+    <guide package="@codernic/connectors">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/connectors
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (RULE-COC-CONSUME-001)**:
+> You MUST read this document before implementing code that imports `@codernic/connectors` or `@codernic/react-connectors`.
+> Do NOT guess APIs, do NOT invent fake Tauri commands, and do NOT create mock stubs or artificial sleeps.
+> Adhere strictly to the architecture, canonical recipes, and security invariants documented below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`@codernic/connectors` is the sovereign, enterprise-grade dual-stack integration suite for the Codernic ecosystem. It provides unified, authenticated connectivity across third-party developer platforms, cloud providers, and productivity suites.
+
+### 1.1 Dual-Stack Paradigm
+The package is structured into two symmetric, parity-enforced layers:
+1. **Rust Backend Layer (`codernic-connectors`):**
+   - Headless driver engine implementing the `ConnectorDriver` trait.
+   - Hardened OAuth2 with PKCE (`RFC 7636`, `S256`), CSRF state validation, and loopback redirect server (`127.0.0.1:<port>`).
+   - Secure memory vault (`VaultStorage`) ensuring access and refresh tokens are zeroized in RAM on drop via `zeroize::ZeroizeOnDrop`.
+   - `ConnectorsChannel` router implementing the StateKernel IPC wire protocol (`connectors/*` operations).
+2. **TypeScript / React Frontend Layer (`@codernic/react-connectors`):**
+   - Pure Atomic Design component hierarchy (Atoms, Molecules, Organisms, Widgets).
+   - Pluggable Strategy pattern (`ConnectorStrategy`) providing UI metadata, form validation, and OAuth URL generation.
+   - Redux Toolkit state slice (`connectorsSlice`) managed through Redux-Saga side-effects.
+   - StateKernel Service Provider Interface (`ConnectorsServiceProviderToken` / `ConnectorsServiceToken`) decoupling UI from transport.
+
+### 1.2 The 10 Canonical Connectors across 5 Domains
+The package supports exactly 10 production connectors with 100% backend/frontend parity:
+
+| Domain | Connectors | Authentication Type | Backend Driver | Frontend Strategy |
+| :--- | :--- | :--- | :--- | :--- |
+| **Mail** | `gmail`, `outlook` | OAuth2 PKCE / SMTP | `GmailDriver`, `OutlookDriver` | `GmailStrategy`, `OutlookStrategy` |
+| **DevOps** | `github`, `gitlab` | OAuth2 PKCE / PAT | `GitHubDriver`, `GitLabDriver` | `GitHubStrategy`, `GitLabStrategy` |
+| **Identity** | `google_workspace`, `entra_id` | OAuth2 PKCE / OIDC | `GoogleWorkspaceDriver`, `EntraIdDriver` | `GoogleWorkspaceStrategy`, `EntraIdStrategy` |
+| **Office** | `notion`, `slack` | OAuth2 PKCE / Bearer | `NotionDriver`, `SlackDriver` | `NotionStrategy`, `SlackStrategy` |
+| **Storage** | `google_drive`, `onedrive` | OAuth2 PKCE | `GoogleDriveDriver`, `OneDriveDriver` | `GoogleDriveStrategy`, `OneDriveStrategy` |
+
+### 1.3 StateKernel SPI Transport Abstraction
+Frontend code NEVER invokes raw Tauri commands or browser fetch calls directly. Instead, UI interactions dispatch Redux actions that trigger sagas. Sagas invoke the `ConnectorsService` registered on the StateKernel IoC container:
+
+```
+[React Component] 
+       │ (dispatches action)
+       ▼
+[Redux Toolkit Store] 
+       │ (intercepted by)
+       ▼
+[Redux-Saga Worker]
+       │ (calls)
+       ▼
+[StateKernel SPI: ConnectorsService]
+       │ (transports via StateKernel IPC envelope)
+       ▼
+[Rust ConnectorsChannel]
+       │ (routes to)
+       ▼
+[ConnectorRegistry] ──► [Hardened Driver / OAuth / Vault]
+```
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### 2.1 Backend Boot Lifecycle (Rust)
+To initialize the backend engine in your host application:
+
+1. **Instantiate the Registry:**
+   Create an instance of `ConnectorRegistry::new()` and register the drivers.
+2. **Register All Default Drivers:**
+   Call `register_all_default_drivers(&mut registry)` to register all 10 drivers simultaneously.
+3. **Wrap in Arc<RwLock<...>>:**
+   Wrap the registry in thread-safe shared pointers for async execution.
+4. **Instantiate the ConnectorsChannel:**
+   Pass the shared registry into `ConnectorsChannel::new(registry)`.
+5. **Route Incoming IPC Messages:**
+   Feed incoming StateKernel IPC requests into `channel.handle_request(envelope).await`.
+
+### 2.2 Frontend Boot Lifecycle (React)
+To integrate the frontend UI and state management in your React application:
+
+1. **Mount the Redux Reducer:**
+   Add `connectorsReducer` to your root Redux store configuration under the key `"connectors"`.
+2. **Fork the Connectors Saga:**
+   In your root saga, fork `watchConnectorsSagas()`.
+3. **Register the StateKernel Service Provider:**
+   Register an implementation of `ConnectorsService` in your StateKernel IoC container using `ConnectorsServiceToken`.
+4. **Mount the UI Components:**
+   Render `<ConnectorFleetGrid />`, `<ConnectorCategoryDeck />`, or `<ConnectorConfigModal />` inside your Redux `<Provider>` and StateKernel Context.
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+The repository includes tested, copy-pasteable canonical recipes in `guide/recipes/`:
+
+- **Recipe 1 (`01_backend_registry_setup.rs`):** Instantiating the registry, configuring credentials, and executing connection health checks.
+- **Recipe 2 (`02_backend_oauth_pkce_flow.rs`):** End-to-end OAuth2 PKCE flow with loopback listener, state verification, and vault storage.
+- **Recipe 3 (`03_backend_statekernel_channel.rs`):** StateKernel IPC request/response dispatching and envelope error handling.
+- **Recipe 4 (`04_react_statekernel_spi_setup.tsx`):** Configuring Redux Toolkit store, Redux-Saga middleware, and StateKernel SPI container.
+- **Recipe 5 (`05_react_fleet_and_modal_ui.tsx`):** Rendering the connector fleet grid with category filtering and interactive configuration modal.
+
+---
+
+## 4. Invariants & Security Guarantees
+
+1. **Zero Raw Windows or Secrets in Memory:**
+   OAuth access tokens, refresh tokens, and client secrets are wrapped in `SecureToken` / `Zeroizing<String>`. When dropped, their memory is overwritten with zeroes.
+2. **PKCE Enforcement:**
+   Every OAuth2 flow MUST use SHA-256 code challenge (`code_challenge_method=S256`) and a cryptographically secure random `code_verifier` (min 43 chars, max 128 chars).
+3. **CSRF State Validation:**
+   Authorization requests include a high-entropy `state` parameter that is verified on the redirect callback before exchanging authorization codes.
+4. **Atomic Redux State Mutations:**
+   All frontend state mutations (status, testing, error, credentials) are strictly handled through typed Redux Toolkit actions. Direct state mutation is impossible.
+5. **Hermetic Packaging & Zero Path Escapes:**
+   This package resolves hermetically into `.codernic/packages/@codernic/connectors/`. No dependencies may reference relative parent folders (`..`).
+
+---
+
+## 5. Quick Verification
+
+To verify that your integration complies with sovereign standards:
+
+```bash
+# Backend verification: all unit and integration tests
+cargo test -p codernic-connectors
+
+# Frontend verification: typecheck and Vitest suite
+pnpm --filter @codernic/react-connectors run typecheck
+pnpm --filter @codernic/react-connectors run test
+
+# Full package compilation and integrity check
+coc-pm build
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/connectors
+
+This document enumerates architectural, security, and integration practices that are **strictly prohibited** when consuming or extending `@codernic/connectors`. Autonomous AI agents violating any of these patterns will be rejected by the CompileGate and Sentinel verification rules.
+
+---
+
+### ❌ Anti-Pattern 1: Direct Tauri IPC Invocations in React Components
+- **Prohibited:**
+  ```tsx
+  // ⛔ REJECTED: Bypasses StateKernel SPI and Redux State Store
+  import { invoke } from '@tauri-apps/api/core';
+  await invoke('connectors_test_connection', { id: 'github' });
+  ```
+- **Why it Fails:**
+  Bypasses the StateKernel IoC container, eliminates audit logging, circumvents Redux state synchronization, and couples UI components to the Tauri desktop environment, breaking web, headless, and test runners.
+- **Correct Solution:**
+  Dispatch typed Redux actions (`testConnectorRequest({ id })`) handled by `connectorsSagas`, or resolve `ConnectorsServiceToken` via StateKernel SPI.
+
+---
+
+### ❌ Anti-Pattern 2: Raw Window PostMessage Listeners for OAuth Callbacks
+- **Prohibited:**
+  ```tsx
+  // ⛔ REJECTED: Severe CSRF and XSS vulnerability
+  window.addEventListener('message', (event) => {
+    if (event.data.code) saveToken(event.data.code);
+  });
+  ```
+- **Why it Fails:**
+  Exposes the authentication pipeline to malicious third-party frames, spoofed postMessage payloads, and unverified origins without cryptographic CSRF state validation.
+- **Correct Solution:**
+  Use the hardened loopback HTTP listener managed exclusively by the Rust backend `OAuthFlowManager` on `127.0.0.1:<port>`.
+
+---
+
+### ❌ Anti-Pattern 3: Insecure Plaintext Secret Storage
+- **Prohibited:**
+  ```typescript
+  // ⛔ REJECTED: Leaks API tokens and client secrets into unencrypted disk storage
+  localStorage.setItem('github_pat', patValue);
+  ```
+- **Why it Fails:**
+  Tokens stored in `localStorage` or unencrypted state trees persist across sessions in plaintext, vulnerable to malicious dependencies and memory inspection.
+- **Correct Solution:**
+  Store secrets exclusively in the backend `ConnectorStateStore` backed by `VaultStorage` and memory zeroization via `zeroize::ZeroizeOnDrop`.
+
+---
+
+### ❌ Anti-Pattern 4: Hardcoded OAuth Client Secrets or Non-PKCE OAuth Flows
+- **Prohibited:**
+  ```rust
+  // ⛔ REJECTED: Insecure authorization code grant without PKCE
+  let auth_url = format!("{}/auth?client_id={}&client_secret={}", ep, id, secret);
+  ```
+- **Why it Fails:**
+  Public clients (desktop and SPA applications) cannot maintain client confidentiality. Standard auth code grant without PKCE allows authorization code interception attacks.
+- **Correct Solution:**
+  Always invoke `OAuthFlowManager::generate_pkce_challenge()` and transmit `code_challenge_method=S256`. Client secrets must never be embedded in frontend bundles.
+
+---
+
+### ❌ Anti-Pattern 5: Using `React.FC` or Untyped Props in Connector Components
+- **Prohibited:**
+  ```tsx
+  // ⛔ REJECTED: Deprecated React.FC and any types
+  export const MyCard: React.FC<any> = (props) => { ... };
+  ```
+- **Why it Fails:**
+  Breaks sovereign TypeScript strict mode (`noImplicitAny`, exact optional property types) and pollutes component tree with implicit children.
+- **Correct Solution:**
+  Use explicit, strongly typed interface declarations:
+  ```tsx
+  export interface ConnectorCardProps {
+    readonly connector: ConnectorDescriptor;
+    readonly onConfigure: (id: string) => void;
+  }
+  export const ConnectorCard = ({ connector, onConfigure }: ConnectorCardProps) => { ... };
+  ```
+
+---
+
+### ❌ Anti-Pattern 6: Artificial Async Timeouts / `sleep()` Mocking in Production Drivers
+- **Prohibited:**
+  ```rust
+  // ⛔ REJECTED: Vaporware and fake mock latency
+  tokio::time::sleep(Duration::from_millis(500)).await;
+  Ok(ConnectionTestResult::success())
+  ```
+- **Why it Fails:**
+  Violates rule `NO VAPORWARE | NO SIMULATION | ONLY AAA GRADE CODE`. Gives a false sense of success while network connectivity or authentication might be completely broken.
+- **Correct Solution:**
+  Execute real HTTP handshakes against authentic provider endpoints, validating response status codes and TLS integrity.
+
+---
+
+### ❌ Anti-Pattern 7: Relative Path Traversal Escapes in `Cargo.toml` or `package.json`
+- **Prohibited:**
+  ```toml
+  # ⛔ REJECTED BY ORACLE: Escapes repository boundary
+  codernic-connectors = { path = "../../../Codernic-Connectors/crates/codernic-connectors" }
+  ```
+- **Why it Fails:**
+  Breaks hermetic builds, CI pipelines, and multi-developer workstations when directories are cloned to arbitrary paths.
+- **Correct Solution:**
+  Install packages using `coc-pm add @codernic/connectors` and link them through `.codernic/packages/@codernic/connectors/`.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/deming-engine">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/deming-engine (SPEC-COC-GUIDE-001)
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (RULE-COC-CONSUME-001)**:
+> You MUST read this document before implementing or modifying code that imports `@codernic/deming-engine` or `@codernic/react-deming-engine`.
+> Do NOT guess APIs, do NOT invent mock wrappers, and do NOT bypass the Strategy Pattern pipeline. Adhere strictly to the recipes, physical hardware invariants, and anti-patterns below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`Codernic-Deming-Engine` is the sovereign ML/DL inference, continual training, and hardware execution engine for the Codernic ecosystem. It is built upon concrete, physical computation substrates with zero stubs, zero mocks, and zero vaporware (AAA Grade Sovereign Standards).
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   React Frontend Layer (@codernic/react-deming-engine)                 │
+│  DemingEngineStatusWidget │ DemingInferenceInspectorWidget │ DemingMetricsDashboardWidget│
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │ KernelEnvelope<T> / useWidgetChannel
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   StateKernel Channel Router & Native FFI / RPC Ingress                │
+│  State Channels: deming:engine:status | deming:inference:events | deming:metrics:stream│
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   Deming Engine Core Orchestrator (StrategyPipeline<T>)                │
+│  DemingContext ──► DeviceCapabilities ──► Strategy Registry (Ordered Precedence)       │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  1. Cayley Expander GNN Topology (Ramanujan Spectral Non-Local Draft Expansion)        │
+│  2. MLA Latent Cache Strategy (Decoupled RoPE + Low-Rank Matrix Absorption)           │
+│  3. FlashAttention-3 Strategy (Warp-Specialized Ping-Pong GEMM + Async TMA Transfers)  │
+│  4. GaLore Optimizer Strategy (SVD Low-Rank Gradient Projection Continual Training)   │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   Hardware Execution Backends (Native Physical Devices)                │
+│  Ash Vulkan (Timeline Semaphores) │ HIP AMD ROCm │ Apple Metal │ CPU AVX-512 Fallback  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Foundational Pillars & Invariants:
+1. **The Strategy Pattern (`StrategyPipeline<T>`)**:
+   - Hardware execution never hardcodes device paths or relies on static conditional compilation in user code.
+   - All operations flow through a `StrategyPipeline<T>` evaluated dynamically against `DemingContext` and `DeviceCapabilities`.
+   - Strategies declare explicit numeric precedence (e.g. Vulkan Ash / HIP AMD have higher precedence than CPU fallback).
+2. **Multi-Head Latent Attention (MLA) with Matrix Absorption**:
+   - During **Prefill Phase**, keys and values are compressed into low-rank latent vectors $c_t^{KV} \in \mathbb{R}^{d_c}$ and stored in `MlaLatentCacheStrategy` alongside decoupled RoPE keys $k_t^R$, achieving a 4x–8x reduction in KV cache memory footprint.
+   - During **Decode Phase**, projection matrices are mathematically absorbed prior to attention:
+     $$W_{UK} = W_Q \cdot W_{DK}^T \quad \text{and} \quad W_{UV} = W_O \cdot W_{DV}^T$$
+     Eliminating runtime per-token KV projection and transforming attention into direct latent inner products with RoPE separation.
+3. **Cayley Expander Graph Speculative Decoding**:
+   - Speculative candidate verification uses Ramanujan Cayley Expander graphs ($\lambda_2 \le 2\sqrt{d-1}$) to explore token tree branches with optimal spectral expansion, maximizing acceptance rate with minimal verification overhead.
+4. **GaLore Low-Rank Continual Training**:
+   - Gradient matrices $G \in \mathbb{R}^{m \times n}$ are projected into compact subspace $P \in \mathbb{R}^{m \times r}$ ($r \ll \min(m, n)$) via periodic SVD, cutting optimizer memory by up to 65% while preserving full-rank training convergence.
+5. **StateKernel & Layout Engine UI Integration (`PROTOCOL-COD-004`)**:
+   - Frontend components never poll HTTP endpoints or perform raw fetches.
+   - CCU (Codernic Central Unit) widgets subscribe to typed channels via `useWidgetChannel("deming:...")` and dispatch actions through Redux-Saga supervised pipelines.
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### 2.1 Backend Initialization Lifecycle (Rust)
+To initialize the Deming Engine within a Rust service or consumer binary:
+1. **Initialize Hardware Substrate**:
+   Construct a `GpuContext` or query available hardware backends (`DeviceCapabilities::detect()`).
+2. **Create Engine Context**:
+   Instantiate `DemingContext` configured with model configuration, context length, and execution batch limits.
+3. **Assemble the Strategy Pipeline**:
+   Instantiate `StrategyPipeline::new()` and register active strategies in precedence order (`MlaLatentCacheStrategy`, `CayleyExpanderTopology`, `FlashAttention3Strategy`, `GaloreOptimizerStrategy`).
+4. **Load Model Weights**:
+   Stream GGUF or SafeTensors weights through `ModelLoader` (leveraging `io-uring` fast zero-copy memory mapping on Linux).
+5. **Execute Forward Passes**:
+   Dispatch token generation through `pipeline.execute_prefill(...)` and iterative `pipeline.execute_decode(...)`.
+
+### 2.2 Frontend CCU Widget Mounting Lifecycle (React)
+To mount Deming Engine CCU widgets in a Codernic Layout Engine host:
+1. **Mount Redux Store & StateKernel Provider**:
+   Ensure `demingEngineReducer` and `demingEngineSaga` are attached to the root Redux store.
+2. **Mount Context Provider**:
+   Wrap the widget container with `<DemingEngineProvider>`.
+3. **Mount CCU Widgets**:
+   Render `<DemingEngineStatusWidget />`, `<DemingInferenceInspectorWidget />`, or `<DemingMetricsDashboardWidget />` directly into Layout Engine docks or central stage cards.
+
+### 2.3 Standalone Native CLI Binaries
+The engine provides high-performance native executables in `crates/deming-core/src/bin/`:
+```bash
+# 1. Enterprise Performance & Throughput Benchmark
+cargo run --release --bin deming_bench -- --model-path /models/deepseek-r1.gguf --mode throughput --backend vulkan
+
+# 2. End-to-End Inference Verification Suite
+cargo run --release --bin deming_e2e -- --model-path /models/deepseek-r1.gguf --test needle --context-size 16384
+
+# 3. Hardware Torture & Numerical Resilience Suite
+cargo run --release --bin deming_torture -- --suite all --seed 42
+```
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+### Recipe 1: Rust Backend Inference via Strategy Pipeline
+```rust
+use std::sync::Arc;
+use deming_engine::context::DemingContext;
+use deming_engine::device::{DeviceCapabilities, GpuContext};
+use deming_engine::pipeline::{StrategyPipeline, ExecutionPhase};
+use deming_engine::strategies::mla_latent_cache::MlaLatentCacheStrategy;
+use deming_engine::strategies::cayley_expander::CayleyExpanderTopology;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Detect physical hardware capabilities
+    let caps = DeviceCapabilities::detect();
+    let gpu_ctx = Arc::new(GpuContext::build()?);
+
+    // 2. Build sovereign engine execution context
+    let deming_ctx = DemingContext::builder()
+        .with_max_seq_len(8192)
+        .with_latent_dim(512)
+        .with_device_capabilities(caps)
+        .build()?;
+
+    // 3. Assemble Strategy Pipeline with MLA and Cayley Expander
+    let mut pipeline = StrategyPipeline::new();
+    pipeline.register_strategy(MlaLatentCacheStrategy::new(deming_ctx.clone()));
+    pipeline.register_strategy(CayleyExpanderTopology::new(8, 3)); // Degree-8 3-step expander
+
+    // 4. Run Prefill Phase (Compresses KV into low-rank latents)
+    let prompt_tokens = vec![101, 2054, 2003, 1037, 2742, 102];
+    let prefill_result = pipeline.execute_phase(
+        ExecutionPhase::Prefill,
+        &prompt_tokens,
+        &deming_ctx,
+    )?;
+
+    println!("Prefill completed. Latent cache allocated: {} bytes", prefill_result.latent_cache_bytes);
+
+    // 5. Run Iterative Decode Phase with Matrix Absorption
+    let mut current_token = prefill_result.next_token;
+    for _step in 0..64 {
+        let decode_result = pipeline.execute_phase(
+            ExecutionPhase::Decode,
+            &[current_token],
+            &deming_ctx,
+        )?;
+        print!("{} ", decode_result.generated_token_str);
+        if decode_result.is_eos {
+            break;
+        }
+        current_token = decode_result.next_token;
+    }
+    println!("\nInference finished with zero uncompressed KV bloat.");
+    Ok(())
+}
+```
+
+### Recipe 2: MLA Latent Cache with Matrix Absorption
+```rust
+use deming_engine::strategies::mla_latent_cache::{MlaLatentCache, MlaWeights, MlaAbsorbedWeights};
+
+fn run_mla_matrix_absorption_cycle(
+    raw_weights: &MlaWeights,
+    kv_latent_dim: usize,
+    rope_dim: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Initialize latent cache with compressed storage
+    let mut cache = MlaLatentCache::new(kv_latent_dim, rope_dim, 8192);
+
+    // 2. Mathematically absorb projection matrices for decode phase
+    // W_UK = W_Q * W_DK^T and W_UV = W_O * W_DV^T
+    let absorbed = MlaAbsorbedWeights::compute(raw_weights)?;
+    assert!(absorbed.is_valid(), "Absorbed matrices must satisfy spectral stability");
+
+    // 3. Decode step performs direct attention over cached compressed latents
+    // Zero memory decompression, zero temporary GQA/MHA tensor allocations
+    let query_vector = vec![0.0f32; kv_latent_dim + rope_dim];
+    let attention_output = cache.compute_absorbed_attention(&query_vector, &absorbed)?;
+
+    assert_eq!(attention_output.len(), raw_weights.hidden_dim);
+    Ok(())
+}
+```
+
+### Recipe 3: Continual Training with GaLore SVD Low-Rank Projection
+```rust
+use deming_engine::strategies::galore::{GaloreOptimizer, GaloreConfig};
+
+fn train_continual_step(
+    weights: &mut [f32],
+    gradients: &[f32],
+    rows: usize,
+    cols: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Configure GaLore low-rank projection (rank = 64, SVD update every 200 steps)
+    let config = GaloreConfig {
+        rank: 64,
+        update_proj_gap: 200,
+        scale: 0.25,
+    };
+    let mut optimizer = GaloreOptimizer::new(rows, cols, config);
+
+    // 2. Project full-rank gradient into compact subspace P * G
+    optimizer.step(weights, gradients)?;
+
+    println!("GaLore step executed. Optimizer memory footprint reduced by 65%.");
+    Ok(())
+}
+```
+
+### Recipe 4: React CCU Widget Integration in Codernic Layout Host
+```tsx
+import React from 'react';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import { LayoutProvider, LayoutHost } from '@codernic/react-layout-engine';
+import {
+  DemingEngineProvider,
+  DemingEngineStatusWidget,
+  DemingMetricsDashboardWidget,
+} from '@codernic/react-deming-engine';
+
+export function DemingApp() {
+  return (
+    <Provider store={store}>
+      <LayoutProvider>
+        <DemingEngineProvider>
+          <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100">
+            {/* Top Navbar */}
+            <header className="h-12 border-b border-slate-800 px-4 flex items-center justify-between">
+              <h1 className="text-sm font-semibold tracking-wider uppercase text-cyan-400">
+                Codernic Deming Engine Control Unit
+              </h1>
+              <DemingEngineStatusWidget />
+            </header>
+
+            {/* Central Stage */}
+            <main className="flex-1 p-6 overflow-auto">
+              <DemingMetricsDashboardWidget />
+            </main>
+          </div>
+        </DemingEngineProvider>
+      </LayoutProvider>
+    </Provider>
+  );
+}
+```
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Physical Computation Contract**:
+   Every kernel execution performs verified floating-point math on real hardware or AVX/NEON CPU intrinsics. Stubbed tensors and simulated outputs are strictly prohibited.
+2. **Matrix Absorption Numerical Equivalence**:
+   The output of decode-phase attention computed with absorbed matrices $W_{UK}, W_{UV}$ over latent cache $c^{KV}$ is mathematically equivalent within machine epsilon ($\le 1\times 10^{-4}$) to standard uncompressed Multi-Head Latent Attention.
+3. **Thread Safety (`Send + Sync`)**:
+   `DemingContext`, `StrategyPipeline`, and all execution strategies implement `Send + Sync` and safely execute across multi-threaded asynchronous runtimes.
+4. **Cryptographic State Sealing**:
+   Model weights, configuration manifests, and cached tensors are verified against BLAKE3 cryptographic hashes. Any hash mismatch aborts execution immediately.
+5. **Zero-Panic Guarantee**:
+   All public APIs return typed `Result<T, DemingError>` error structures. Panics and unhandled `unwrap()` calls on runtime fallible paths are strictly forbidden.
+
+---
+
+## 5. Quick Verification
+
+To verify that your project correctly compiles and integrates `@codernic/deming-engine`:
+
+```bash
+# Verify Rust Backend & Binaries
+cargo check --bins
+
+# Verify React Frontend Bundle
+pnpm --filter @codernic/react-deming-engine run typecheck
+
+# Verify Package Cryptographic Seal in COC Toolchain
+coc-pm verify
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/deming-engine
+
+> ⚠️ **STRICT PROHIBITIONS FOR AI AGENTS & DEVELOPERS (RULE-COC-CONSUME-001)**:
+> This document details the common architectural mistakes, anti-patterns, and hallucination traps when consuming `@codernic/deming-engine`.
+> Every item below has caused physical runtime stalls, memory leaks, or compilation failure. DO NOT commit any of these patterns.
+
+---
+
+### ❌ Anti-Pattern 1: Allocating Uncompressed GQA/MHA KV Caches for MLA Models
+- **Prohibited:**
+  ```rust
+  // WRONG: Allocating raw (batch, heads, seq_len, head_dim) tensors when model uses MLA
+  let mut kv_cache = vec![0.0f32; batch_size * num_kv_heads * max_seq_len * head_dim];
+  ```
+- **Why it Fails:**
+  Deming Engine models with Multi-Head Latent Attention (MLA) compress key/value tokens into compact latent vectors $c^{KV} \in \mathbb{R}^{d_c}$ with decoupled RoPE keys $k^R$. Allocating uncompressed GQA/MHA caches explodes VRAM consumption by 4x to 8x and invalidates matrix absorption optimization.
+- **Correct Solution:**
+  Always use `MlaLatentCacheStrategy` or `MlaLatentCache::new(latent_dim, rope_dim, max_seq_len)`:
+  ```rust
+  // CORRECT: Compact latent allocation with decoupled RoPE
+  let mut cache = MlaLatentCache::new(latent_dim, rope_dim, max_seq_len);
+  ```
+
+---
+
+### ❌ Anti-Pattern 2: Invoking Hardware Backends Bypassing the Strategy Pipeline
+- **Prohibited:**
+  ```rust
+  // WRONG: Hardcoding raw Vulkan or HIP calls directly in application logic
+  let raw_buf = AshVulkanDevice::submit_raw_gemm(&a, &b)?;
+  ```
+- **Why it Fails:**
+  Bypasses hardware precedence resolution, device capability checks (`DeviceCapabilities`), timeline semaphore tracking, and automatic fallback pathways. If run on Apple Silicon or non-Vulkan nodes, the process will panic or abort.
+- **Correct Solution:**
+  Always submit computation tasks through `StrategyPipeline<T>` and `DemingContext`:
+  ```rust
+  // CORRECT: Dynamic precedence dispatch via StrategyPipeline
+  let result = pipeline.execute_phase(ExecutionPhase::Decode, &tokens, &deming_ctx)?;
+  ```
+
+---
+
+### ❌ Anti-Pattern 3: Polling GPU Queues with Blocking Thread Sleeps in Inner Decode Loops
+- **Prohibited:**
+  ```rust
+  // WRONG: Thread sleep polling in decode loop
+  while !fence.is_signaled() {
+      std::thread::sleep(std::time::Duration::from_millis(1));
+  }
+  ```
+- **Why it Fails:**
+  Introduces OS scheduler latency, stalls the token generation pipeline, and starves timeline semaphores. At 50 tokens/sec, a 1ms sleep represents a 5% to 10% throughput degradation.
+- **Correct Solution:**
+  Use Vulkan timeline semaphores (`vkWaitSemaphores` / async future polling) or lock-free crossbeam channels.
+
+---
+
+### ❌ Anti-Pattern 4: Early Return Before Threadgroup/Warp Barrier (`__syncthreads()`)
+- **Prohibited:**
+  ```cuda
+  // WRONG: Divergent branch returning before synchronization barrier
+  if (threadIdx.x >= active_tokens) return;
+  __syncthreads(); // Hardware deadlock / undefined warp state
+  ```
+- **Why it Fails:**
+  In SIMT architectures (Vulkan GLSL compute, HIP ROCm, CUDA), all threads within a workgroup or warp must reach convergent synchronization points. Returning early causes GPU execution hangs, TDR resets, or silent data corruption.
+- **Correct Solution:**
+  Perform conditional execution *after* all shared memory barriers and cooperative loads have completed.
+
+---
+
+### ❌ Anti-Pattern 5: Direct Internal Imports Bypassing Root Package Exports
+- **Prohibited:**
+  ```typescript
+  // WRONG: Reaching into private internal structures
+  import { _internalRawReducer } from '@codernic/react-deming-engine/dist/state/internal_raw';
+  ```
+- **Why it Fails:**
+  Internal folder paths are unversioned and refactored continuously across builds.
+- **Correct Solution:**
+  Always import from the published entry points:
+  ```typescript
+  // CORRECT: Canonical public barrel export
+  import { DemingEngineProvider, DemingEngineStatusWidget } from '@codernic/react-deming-engine';
+  ```
+
+---
+
+### ❌ Anti-Pattern 6: Bypassing StateKernel Channels with Unsupervised `fetch()`
+- **Prohibited:**
+  ```typescript
+  // WRONG: Bypassing StateKernel and Redux-Saga
+  const res = await fetch('http://localhost:8089/api/deming/metrics');
+  ```
+- **Why it Fails:**
+  Violates Codernic sovereign communication invariant `PROTOCOL-COD-004`. State desynchronizes from the central layout bus and breaks telemetry auditing.
+- **Correct Solution:**
+  Use `useWidgetChannel("deming:metrics:stream")` or dispatch Redux actions supervised by `demingEngineSaga`.
+
+---
+
+### ❌ Anti-Pattern 7: Relative Workspace Escapes in Build Manifests
+- **Prohibited:**
+  ```toml
+  # WRONG: Escaping repository boundary
+  deming-engine = { path = "../../../autre_repo/crates/deming-core" }
+  ```
+- **Why it Fails:**
+  Violates `SOVEREIGN_MANDATE`. Downstream builds fail in containerized environments and fail `coc-pm verify` integrity checks.
+- **Correct Solution:**
+  Declare dependencies via `coc-pm add <package@version>` pointing to `.codernic/packages/`.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/design-system">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/design-system
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (SPEC-COC-GUIDE-001)**:
+> You MUST read this document before generating or modifying code that imports or consumes `@codernic/design-system`.
+> Do NOT guess token names, do NOT write hardcoded hex/RGB colors, and do NOT bypass CSS custom properties. Adhere strictly to the recipes and constraints below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`@codernic/design-system` (CDS) is the **Single Source of Truth (SSOT)** for visual tokens, typography, dark/light multi-theming, responsive layouts, and atomic CSS across all sovereign Codernic applications (`dna`, `Agent-Orchestrator`, `ai-agencee`, `nowflow`, `formular.dev`).
+
+### Three-Tier Token Topology (W3C DTCG Standard):
+1. **Tier 1 — Primitives (`src/tokens/primitives/` & `src/css/tokens-primitives.css`):**
+   Raw palettes (`slate`, `indigo`, `emerald`, `amber`, `rose`), spacing units (`4px` to `96px`), radii (`2px` to `9999px`), typography scales, z-indexes, and transition timings.
+2. **Tier 2 — Semantics (`src/tokens/semantic/` & `src/css/theme-dark.css`, `src/css/theme-light.css`):**
+   Abstract intent tokens (`--cdn-bg-base`, `--cdn-surface-1`, `--cdn-text-primary`, `--cdn-accent-primary`, `--cdn-status-success`). These resolve dynamically based on the active mode (`dark` / `light`) and brand profile.
+3. **Tier 3 — Brand Overrides (`src/tokens/themes/` & `src/css/themes-brands.css`):**
+   Brand-specific themes (`codernic`, `calcpro`, `kompartido`, or custom seeds generated via `deriveBrandPalette`) that dynamically override CSS variables at runtime without page reloads.
+
+### Concurrency & Reactive Injection:
+- The `ThemeManager` (`src/runtime/theme-manager.ts`) manages reactive brand and mode switching on document root (`<html>` or `<body>`).
+- Attribute-based scoping: `data-brand="<brand>"` and `data-theme="dark|light"`.
+- Zero external runtime dependencies: CSS custom properties are native and hardware-accelerated.
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+To integrate `@codernic/design-system` into any web, React, Tauri, or desktop application, execute the following steps in order:
+
+### Step 1: Import CSS Token Layer
+In your main CSS or entrypoint (`main.tsx` / `index.ts` / `App.tsx`):
+```typescript
+// Imports root reset, primitives, themes, typography, components, and animations
+import '@codernic/design-system/css';
+```
+Or in HTML `<head>`:
+```html
+<link rel="stylesheet" href="/node_modules/@codernic/design-system/src/css/index.css" />
+```
+
+### Step 2: Initialize Theme Runtime
+In your application bootstrap code (before UI rendering):
+```typescript
+import { themeManager } from '@codernic/design-system/runtime';
+
+// Initializes theme attributes from localStorage or system preference:
+themeManager.init({
+  defaultBrand: 'codernic', // 'codernic' | 'calcpro' | 'kompartido'
+  defaultMode: 'dark',      // 'dark' | 'light' | 'system'
+  persist: true,            // Persist preference to localStorage
+});
+```
+
+### Step 3: Configure Tailwind CSS (Optional)
+If using Tailwind CSS in your project, add the sovereign preset to `tailwind.config.js`:
+```javascript
+import codernicPreset from '@codernic/design-system/tailwind';
+
+export default {
+  presets: [codernicPreset],
+  content: ['./src/**/*.{html,js,ts,jsx,tsx}'],
+};
+```
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+### Recipe A: React Component with Semantic CSS Classes
+```tsx
+import React from 'react';
+
+export const StatusCard: React.FC<{ title: string; count: number }> = ({ title, count }) => {
+  return (
+    <div className="cdn-card cdn-border-subtle" style={{ padding: 'var(--cdn-space-4)' }}>
+      <div className="cdn-text-caption cdn-text-secondary">{title}</div>
+      <div className="cdn-text-headline cdn-text-primary" style={{ marginTop: 'var(--cdn-space-2)' }}>
+        {count}
+      </div>
+      <button className="cdn-btn-primary" style={{ marginTop: 'var(--cdn-space-3)' }}>
+        View Details
+      </button>
+    </div>
+  );
+};
+```
+
+### Recipe B: Reactive Theme & Mode Switcher in React
+```tsx
+import React, { useEffect, useState } from 'react';
+import { themeManager, ThemeState } from '@codernic/design-system/runtime';
+
+export const ThemeControls: React.FC = () => {
+  const [state, setState] = useState<ThemeState>(themeManager.getState());
+
+  useEffect(() => {
+    return themeManager.subscribe((newState) => setState(newState));
+  }, []);
+
+  return (
+    <div className="cdn-flex cdn-gap-2">
+      <button
+        className={state.brand === 'codernic' ? 'cdn-btn-secondary' : 'cdn-btn-ghost'}
+        onClick={() => themeManager.setBrand('codernic')}
+      >
+        Codernic
+      </button>
+      <button
+        className={state.brand === 'calcpro' ? 'cdn-btn-secondary' : 'cdn-btn-ghost'}
+        onClick={() => themeManager.setBrand('calcpro')}
+      >
+        CalcPro
+      </button>
+      <button
+        className="cdn-btn-ghost"
+        onClick={() => themeManager.toggleMode()}
+      >
+        {state.mode === 'dark' ? '☀️ Light' : '🌙 Dark'}
+      </button>
+    </div>
+  );
+};
+```
+
+### Recipe C: Dynamic Theme Derivation from Seed Color (Theme Studio / VBlock)
+```typescript
+import { deriveBrandPalette, exportThemeToCssVariables, ThemeSeed } from '@codernic/design-system/tokens';
+
+const customSeed: ThemeSeed = {
+  brandId: 'aerospace-defense',
+  brandName: 'Aerospace Defense',
+  primaryHex: '#0ea5e9',
+  secondaryHex: '#64748b',
+  accentHex: '#f59e0b',
+  neutralTint: 'slate',
+};
+
+// Generates mathematically consistent 50..950 scales
+const palette = deriveBrandPalette(customSeed);
+
+// Generates CSS variables matching Sovereign CDS standard
+const cssVariables = exportThemeToCssVariables(palette);
+
+// Inject dynamically into document:
+const styleTag = document.createElement('style');
+styleTag.textContent = `[data-brand="aerospace-defense"] { ${cssVariables} }`;
+document.head.appendChild(styleTag);
+```
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Deterministic BLAKE3 Token Integrity:** All tokens are derived from deterministic mathematical scales (W3C DTCG).
+2. **WCAG AAA / AA Contrast Invariant:** Light and Dark semantic tokens are guaranteed to respect minimal 4.5:1 contrast ratios for normal text and 3:1 for large text / graphical controls.
+3. **Zero Runtime Side-Effects without `themeManager.init()`:** Importing `@codernic/design-system` or `@codernic/design-system/tokens` performs zero DOM mutations and zero network requests.
+4. **Pure CSS Custom Properties:** All styling hooks use the canonical `--cdn-*` variable prefix. No JavaScript overhead during render cycles.
+
+---
+
+## 5. Quick Verification
+
+To verify that your integration of `@codernic/design-system` compiles cleanly without type errors:
+```bash
+# In consumer frontend application:
+pnpm run build # or tsc --noEmit
+```
+
+To verify physical integrity of the installed package:
+```bash
+coc-pm verify
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/design-system
+
+This document lists strict prohibitions and common developer/agent traps when integrating `@codernic/design-system`. Adhering to these rules prevents theme flickering, broken dark mode transitions, and architectural desynchronization.
+
+---
+
+### ❌ Anti-Pattern 1: Hardcoded Hex, RGB, or HSL Color Literals
+
+- **Prohibited:**
+  ```tsx
+  // ❌ ILLEGAL: Breaks theme switching and dark mode contrast
+  <div style={{ backgroundColor: '#0f172a', color: '#ffffff', borderColor: '#334155' }}>
+    ...
+  </div>
+  ```
+- **Why it Fails:**
+  Hardcoded values ignore the active brand and mode (`dark` / `light`), resulting in illegible un-contrasted text or inverted surfaces.
+- **Correct Solution:**
+  Always use semantic CSS variables or atomic utility classes:
+  ```tsx
+  // ✅ CORRECT: Automatically responds to mode & brand switches
+  <div className="cdn-card cdn-border-subtle">
+    ...
+  </div>
+  // OR with CSS custom properties:
+  <div style={{ backgroundColor: 'var(--cdn-bg-base)', color: 'var(--cdn-text-primary)' }}>
+  ```
+
+---
+
+### ❌ Anti-Pattern 2: Arbitrary Spacing & Radii Pixel Values
+
+- **Prohibited:**
+  ```tsx
+  // ❌ ILLEGAL: Arbitrary magic numbers violate visual rhythm
+  <div style={{ padding: '13px', borderRadius: '7px', margin: '22px' }}>
+  ```
+- **Why it Fails:**
+  Breaks visual harmony and violates the 4px baseline grid.
+- **Correct Solution:**
+  Use the 4px mathematical scale tokens:
+  ```tsx
+  // ✅ CORRECT: Consistent spatial tokens
+  <div style={{ padding: 'var(--cdn-space-3)', borderRadius: 'var(--cdn-radius-md)' }}>
+  ```
+
+---
+
+### ❌ Anti-Pattern 3: Manual Class Toggling for Dark Mode
+
+- **Prohibited:**
+  ```typescript
+  // ❌ ILLEGAL: Setting ad-hoc classes or un-namespaced attributes
+  document.body.classList.toggle('dark');
+  document.documentElement.setAttribute('theme', 'dark');
+  ```
+- **Why it Fails:**
+  CDS uses attribute selectors `data-theme="dark|light"` and `data-brand="codernic|calcpro|kompartido"`. Manual class changes are ignored by CSS token rules.
+- **Correct Solution:**
+  Always use the canonical `themeManager` API:
+  ```typescript
+  // ✅ CORRECT: Updates data-theme and data-brand, triggers listeners, and persists
+  themeManager.toggleMode();
+  // OR
+  themeManager.setMode('dark');
+  themeManager.setBrand('calcpro');
+  ```
+
+---
+
+### ❌ Anti-Pattern 4: Direct Deep Internal Path Imports
+
+- **Prohibited:**
+  ```typescript
+  // ❌ ILLEGAL: Private internal directory path escapes
+  import { colors } from '@codernic/design-system/src/tokens/primitives/colors';
+  import { ThemeManager } from '@codernic/design-system/src/runtime/theme-manager';
+  ```
+- **Why it Fails:**
+  Internal folder structures are subject to restructuring and break in bundled environments.
+- **Correct Solution:**
+  Use the official package exports declared in `package.json`:
+  ```typescript
+  // ✅ CORRECT: Canonical entrypoint exports
+  import { themeManager } from '@codernic/design-system/runtime';
+  import { deriveBrandPalette } from '@codernic/design-system/tokens';
+  import codernicPreset from '@codernic/design-system/tailwind';
+  ```
+
+---
+
+### ❌ Anti-Pattern 5: Bypassing CSS Reset or Competing Global Resets
+
+- **Prohibited:**
+  Importing aggressive conflicting CSS resets (e.g. legacy Normalize.css v1 or raw Eric Meyer reset) after `@codernic/design-system/css`.
+- **Why it Fails:**
+  Wipes out box-sizing (`border-box`), custom focus rings (`--cdn-focus-ring`), and typography smoothing.
+- **Correct Solution:**
+  Import `@codernic/design-system/css` as your base stylesheet. It already includes the sovereign modern reset.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/general-configuration-manager">
+      <implementation><![CDATA[
+<!--
+Copyright (c) 2026 Tadeop / Codernic AI Engineering. All rights reserved.
+Proprietary and Confidential Source Code.
+SPDX-License-Identifier: LicenseRef-Codernic-Proprietary
+-->
+
+# Implementation Guide — @codernic/general-configuration-manager
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS**:
+> You MUST read this document before implementing code that imports `@codernic/general-configuration-manager` or `codernic-gcm-core`.
+> Do NOT guess APIs or invent custom config managers. Adhere strictly to the recipes and constraints below.
+
+---
+
+## 1. Mental Model & Architecture
+
+The **General Configuration Manager (GCM)** is the sovereign configuration infrastructure for the Codernic ecosystem.
+It solves three fundamental multi-library problems:
+1. **Isolated & Segregated Configuration**: Every library manages its own configuration in its own namespace without key collisions.
+2. **Cumulative & Routable Ingestion**: When Library A depends on Library B (`includes: ["b"]`), GCM builds a dependency DAG using topological sorting, automatically ingesting and validating all transitive dependencies.
+3. **Turnkey FSD Configuration Widget**: Any application can mount `<GcmConfigurationWidget />` to inspect, edit, enable/disable modules, and review cryptographic BLAKE3 audit trails without authoring bespoke admin screens.
+
+### 5-Tier Cascading Resolution Hierarchy
+1. **Environment Variables**: `CODERNIC_GCM_<NAMESPACE>_<KEY>` (Highest priority, overrides all).
+2. **Workspace Configuration**: `<workspace>/.codernic/config/<namespace>.json`.
+3. **Global Configuration**: `~/codernicapp/config/<namespace>.json`.
+4. **Consumer Include Overrides**: Overrides passed down from parent library DAG nodes.
+5. **CPK Package Defaults**: Delivered inside the `.cpk` package archive at `config/codernic.config.json`.
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### Backend (Rust)
+```rust
+use codernic_gcm_core::{GcmConfigurationRouter, GcmConfigurable};
+
+// 1. Initialize router from standard OS roots and Redb store
+let router = GcmConfigurationRouter::from_env()?;
+
+// 2. Register your library's typed configurable struct
+router.register_configurable::<MyLibrarySettings>()?;
+
+// 3. Read typed config anytime in business logic
+let settings = router.get::<MyLibrarySettings>()?;
+```
+
+### Frontend (React / TypeScript)
+```tsx
+import { GcmConfigurationWidget } from '@codernic/general-configuration-manager';
+
+export function SettingsPage() {
+  return (
+    <div className="min-h-screen bg-[var(--cdn-surface-base)]">
+      <GcmConfigurationWidget />
+    </div>
+  );
+}
+```
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+- See `guide/recipes/01_rust_gcm_configurable.rs` for Rust library configuration implementation.
+- See `guide/recipes/02_ts_gcm_configuration_class.ts` for TypeScript library configuration class.
+- See `guide/recipes/03_react_widget_integration.tsx` for turnkey UI mounting.
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Optimistic Concurrency Control (OCC)**: Every mutation checks `expected_revision`. Collisions return `GcmError::RevisionConflict`.
+2. **Cryptographic WORM Audit Ledger**: All configuration mutations append a BLAKE3 hash-chained audit record in Redb.
+3. **POSIX Atomic Disk Writes**: Disk synchronization validates syntax in RAM, writes to a staging file with `sync_all()`, and executes an atomic POSIX rename.
+
+---
+
+## 5. Quick Verification
+
+```bash
+cargo test -p codernic-gcm-core -p codernic-gcm-server
+pnpm --filter @codernic/general-configuration-manager run test
+pnpm --filter @codernic/general-configuration-manager run typecheck
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+<!--
+Copyright (c) 2026 Tadeop / Codernic AI Engineering. All rights reserved.
+Proprietary and Confidential Source Code.
+SPDX-License-Identifier: LicenseRef-Codernic-Proprietary
+-->
+
+# Anti-Patterns & Prohibited Practices — @codernic/general-configuration-manager
+
+### ❌ Anti-Pattern 1: Direct Environment Variable Reads in Business Logic
+- **Prohibited:** `let token = std::env::var("MY_TOKEN")?;` or `const port = process.env.PORT;` in library code.
+- **Why it Fails:** Breaks multi-tenant workspace isolation, bypasses OCC revisions, and makes testing non-deterministic.
+- **Correct Solution:** Always declare a field in `config/codernic.config.json` and read it via `GcmConfigurable` / `GcmConfigurationClass`.
+
+### ❌ Anti-Pattern 2: Ad-Hoc Disk Writes Bypassing GCM
+- **Prohibited:** `std::fs::write("config.json", ...)` or `fs.writeFileSync(...)`.
+- **Why it Fails:** Corrupts concurrent writes, causes half-written JSON files on crashes, and skips BLAKE3 audit tracking.
+- **Correct Solution:** Always call `router.update_module(...)` or `AtomicConfigWriter::write_atomic(...)`.
+
+### ❌ Anti-Pattern 3: Raw Fetch Calls in UI State Sagas
+- **Prohibited:** Calling `window.fetch()` or `axios.get()` inside Redux sagas.
+- **Why it Fails:** Violates Sovereign StateKernel bus isolation and fails in Tauri/IPC desktop runtime environments.
+- **Correct Solution:** Always route I/O via `yield* sagaChannelRequest(channel, 'gcm:...', payload)`.
+
+### ❌ Anti-Pattern 4: Raw HTML Controls in UI Extensions
+- **Prohibited:** Using `<button>`, `<input>`, `<select>`, `<textarea>` directly.
+- **Why it Fails:** Violates Codernic Design System accessibility, dark mode tokens, and theme contracts.
+- **Correct Solution:** Use `@codernic/ui-components`: `Button`, `BaseInput`, `BaseSelect`, `BaseTextarea`, `Card`, `Modal`.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/general-settings">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/general-settings
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (SPEC-COC-GUIDE-001)**:
+> You MUST read this document before generating or modifying code that imports or integrates `@codernic/general-settings`.
+> Do NOT guess APIs, do NOT create monolithic god components, and do NOT violate layer boundaries. Adhere strictly to the recipes and constraints below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`@codernic/general-settings` (CGS) is the sovereign configuration backbone of the Codernic ecosystem. It provides a dual-stack configuration architecture:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Frontend: @codernic/react-general-settings           │
+│   (31 Atomic Widgets, 2 Micro-Widgets, Redux Toolkit, Redux-Saga)      │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ StateKernel SPI Channel Bus
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│               Service Provider SPI Tokens (Decoupled Engines)          │
+│   ├── ConnectorsServiceProviderToken  ──► @codernic/react-connectors   │
+│   ├── RagServiceProviderToken         ──► @codernic/ragtime client     │
+│   └── ScoutServiceProviderToken       ──► AST Grounding Client         │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTP / WebSocket (:8088) or IPC
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│               Backend: codernic-settings-server (Rust Axum)            │
+│   (Redb Key-Value Store, BLAKE3 Ledger, Sysinfo Prober, Git Service)   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Architectural Principles:
+1. **Engine Purity & Inversion of Control**:
+   - Headless configuration core (`codernic-settings-core`, `general-codernic-settings`) never depends on UI or presentation.
+   - External domain engines (Connectors, Ragtime, Deming) are consumed strictly via **StateKernel SPI Tokens** (`ConnectorsServiceProviderToken`, `RagServiceProviderToken`). CGS never forces direct package coupling.
+2. **Atomic Design & Modular Decomposition**:
+   - Every widget is broken into focused subcomponents (Headers, Section tabs, Action decks, Modal dialogs).
+   - God components exceeding 250 lines of code are strictly prohibited.
+3. **Cryptographic Mutation Ledger**:
+   - Every configuration change creates an immutable, append-only BLAKE3 certified entry in the Redb mutation ledger.
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### Backend Server Boot Lifecycle (Rust Axum):
+1. **Resolve Storage Paths**: Use `SettingsPathsResolver` to ensure `.codernic/general-settings/` directory and `settings.redb` exist.
+2. **Initialize Store & Service**: Open `RedbSettingsStore` and wrap it in `Arc<SettingsService>`.
+3. **Discover Workspaces**: Probe `CODERNIC_WORKSPACES_DIR` or fallback to `~/.codernic/workspaces`.
+4. **Instantiate Engine State**: Create `GeneralCodernicSettings` instance with `WorkspaceManager`, `Vault`, and `ProviderDiskStorage`.
+5. **Mount Axum Router**: Call `create_router_with_full_state(...)` to register `/api/v1/gcs/*` routes.
+6. **Bind Listener**: Listen on `127.0.0.1:8088` (or custom `$PORT`).
+
+### Frontend Host Mount Lifecycle (React / Layout Engine):
+1. **Plugin Registration**: In a module-level or memoized bootstrap step, invoke `registerGeneralSettingsPlugin()`.
+2. **Redux Store Configuration**: Combine `generalSettingsPlugin.reducers` with host reducers and run `generalSettingsPlugin.rootSaga`.
+3. **Context Providers Nesting**: Wrap the tree in:
+   `<Provider store={store}>` $\rightarrow$ `<SettingsProvider baseUrl="...">` $\rightarrow$ `<WidgetChannelProvider>` $\rightarrow$ `<LayoutProvider>`.
+4. **Layout Host Rendering**: Mount `<LayoutHost>` with `availableWidgets={GENERAL_SETTINGS_WIDGETS}` and `renderWidget={renderGeneralSettingsWidget}`.
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+### Recipe A: Mounting the React Workbench in a Host Application
+```tsx
+import React, { useMemo } from 'react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import createSagaMiddleware from 'redux-saga';
+import {
+  generalSettingsPlugin,
+  registerGeneralSettingsPlugin,
+  renderGeneralSettingsWidget,
+  GENERAL_SETTINGS_WIDGETS,
+  SettingsProvider,
+} from '@codernic/react-general-settings';
+import { LayoutProvider, LayoutHost, WidgetChannelProvider } from '@codernic/react-layout-engine';
+
+export function SettingsWorkbenchApp(): React.JSX.Element {
+  useMemo(() => {
+    registerGeneralSettingsPlugin();
+  }, []);
+
+  const store = useMemo(() => {
+    const saga = createSagaMiddleware();
+    const s = configureStore({
+      reducer: { ...generalSettingsPlugin.reducers },
+      middleware: (getDefault) => getDefault({ thunk: false, serializableCheck: false }).concat(saga),
+    });
+    saga.run(generalSettingsPlugin.rootSaga);
+    return s;
+  }, []);
+
+  return (
+    <Provider store={store}>
+      <SettingsProvider baseUrl="http://127.0.0.1:8088">
+        <WidgetChannelProvider>
+          <LayoutProvider
+            activeWorkspace="codernic_general_settings"
+            renderWidget={renderGeneralSettingsWidget}
+          >
+            <div className="h-screen w-screen overflow-hidden bg-zinc-950">
+              <LayoutHost availableWidgets={GENERAL_SETTINGS_WIDGETS} />
+            </div>
+          </LayoutProvider>
+        </WidgetChannelProvider>
+      </SettingsProvider>
+    </Provider>
+  );
+}
+```
+
+### Recipe B: Wiring Decoupled Connectors via StateKernel SPI
+```typescript
+import { KernelEngine } from '@codernic/state-kernel';
+import { ConnectorsServiceProviderToken } from '@codernic/react-general-settings';
+import { ConnectorsManagerWidget } from '@codernic/react-connectors';
+
+export function registerConnectorsBridge(kernel: KernelEngine): void {
+  kernel.registerService(ConnectorsServiceProviderToken, {
+    renderWidget: (widgetId, props) => {
+      if (widgetId === 'connectors_manager') {
+        return <ConnectorsManagerWidget {...props} />;
+      }
+      return null;
+    },
+    listConnectedAccounts: async () => {
+      // Return active enterprise accounts
+      return [];
+    },
+  });
+}
+```
+
+### Recipe C: Backend Rust Daemon Initialization
+```rust
+use std::sync::Arc;
+use tokio::net::TcpListener;
+use codernic_settings_core::{RedbSettingsStore, SettingsPathsResolver, SettingsService};
+use codernic_settings_server::server::create_router_with_full_state;
+use general_codernic_settings::GeneralCodernicSettings;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let resolver = SettingsPathsResolver::new();
+    resolver.ensure_directories_exist()?;
+    let store = RedbSettingsStore::open(&resolver.resolve_redb_path())?;
+    let service = Arc::new(SettingsService::new(store));
+    let gcs = Arc::new(GeneralCodernicSettings::default());
+
+    let app = create_router_with_full_state(
+        service,
+        gcs,
+        None,
+        Arc::new(Default::default()),
+        Arc::new(Default::default()),
+        Arc::new(Default::default()),
+        None,
+    );
+
+    let listener = TcpListener::bind("127.0.0.1:8088").await?;
+    axum::serve(listener, app).await?;
+    Ok(())
+}
+```
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Zero God Components**: No component file may exceed 250 lines of code. Huge views must be decomposed into Atomic subcomponents in dedicated subdirectories.
+2. **Zero `any` in TypeScript**: All Redux payloads, widget props, and API channels must be strictly typed.
+3. **Zero Clippy Warnings in Rust**: All crates in `crates/` must compile with `-D warnings`.
+4. **Single Source of Truth for Settings**: Settings values are stored in Redb with schema validation; client widgets perform optimistic updates with rollback on conflict.
+5. **Decoupled Connectors Guarantee**: The General Settings UI renders fallback summary cards if `@codernic/react-connectors` is not plugged into the state kernel.
+
+---
+
+## 5. Quick Verification
+
+```bash
+# Verify backend compilation and tests
+cargo test --workspace --all-targets
+
+# Verify frontend types and tests
+pnpm --filter @codernic/react-general-settings run typecheck
+pnpm --filter @codernic/react-general-settings test
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/general-settings
+
+### ❌ Anti-Pattern 1: Monolithic God Components
+- **Prohibited:** Creating widget files exceeding 250-300 lines of code containing multiple tabs, modal dialogs, and embedded subcomponents.
+- **Why it Fails:** Violates Atomic Design principles, renders components non-reusable, makes refactoring prone to regressions, and causes test bloat.
+- **Correct Solution:** Decompose the widget into atomic subcomponents in a dedicated subdirectory (e.g. `components/hardware/HardwareSpecsTab.tsx`, `components/git/RepoAccordionHeader.tsx`).
+
+---
+
+### ❌ Anti-Pattern 2: Direct Coupling to Heavy External Engines
+- **Prohibited:** Directly importing `@codernic/ragtime` or `@codernic/react-connectors` internal classes inside core general settings widgets.
+- **Why it Fails:** Introduces circular dependencies in monorepos, causes heavy bundle bloat for lightweight consumers, and breaks unidirectional architecture.
+- **Correct Solution:** Consume third-party engines strictly via StateKernel SPI service tokens (`ConnectorsServiceProviderToken`, `RagServiceProviderToken`).
+
+---
+
+### ❌ Anti-Pattern 3: Hardcoded Localhost Ports
+- **Prohibited:** Hardcoding `fetch('http://localhost:8088/...')` or `http://localhost:4004` inside React components.
+- **Why it Fails:** Breaks deployment across containerized environments, remote tunnels, and sovereign desktop shells.
+- **Correct Solution:** Use `SettingsProvider` context or read from `window.location.origin` / configurable environment variables.
+
+---
+
+### ❌ Anti-Pattern 4: Mutating Configuration Store without Audit Ledger
+- **Prohibited:** Directly writing raw JSON or SQLite entries bypassing the `SettingsService` and `MutationLedger`.
+- **Why it Fails:** Destroys the cryptographic audit trail, makes rollback impossible, and breaks optimistic UI conflict detection.
+- **Correct Solution:** Always mutate settings via the `SettingsService::set_setting` API which stamps a BLAKE3 certified transaction log.
+
+---
+
+### ❌ Anti-Pattern 5: Bypassing the Layout Engine
+- **Prohibited:** Manually rendering widgets in fixed, hardcoded HTML grids rather than letting `@codernic/react-layout-engine` orchestrate VBlocks and slots.
+- **Why it Fails:** Prevents operators from docking, splitting, resizing, or persisting layout configurations.
+- **Correct Solution:** Register widgets in `GENERAL_SETTINGS_WIDGETS` and render them through `<LayoutHost>` and `renderGeneralSettingsWidget`.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/layout-engine">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/layout-engine
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (RULE-COC-CONSUME-001)**:
+> You MUST read this document before implementing or modifying code that imports `@codernic/layout-engine` or `@codernic/react-layout-engine`.
+> Do NOT guess APIs, do NOT invent wrappers, and do NOT wrap the Layout Engine inside a router page. Adhere strictly to the single canonical topology below.
+
+---
+
+## 1. La Loi d'Unicité Topologique (The Single Layout Paradigm)
+
+Dans **TOUTES** les applications souveraines Codernic (Suite Applicative, ERP Métier, Studio IDE, Security Center SSO, etc.), il n'existe **qu'UN SEUL et UNIQUE modèle de mise en page : le Standard Cardinal Dual-Level (Macro-Shell & Micro-Stage)**.
+
+Toute tentative de créer une mise en page alternative, une barre latérale flottante sur mesure, un bouton d'action principal flottant en bas d'écran ou d'enrober le layout dans un routeur sera **immédiatement rejetée par le CompileGate**.
+
+### Architecture Cardinale en 2 Niveaux Étanches
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ MACRO TOP NAVBAR (48px / h-12) : Logo | Titre App | Recherche (Cmd+K) | Rôle | Profil  │
+├───────┬────────────────────────────────────────────────────────────────┬───────────────┤
+│       │ PAGE HEADER BAR (44px / h-11) : Titre Page | Fil d'Ariane | Actions Locales    │
+│ MACRO ├──────────────┬──────────────────────────────────┬──────────────┼───────────────┤
+│ LEFT  │ INNER LEFT   │ SCÈNE CENTRALE                   │ INNER RIGHT  │ MACRO RIGHT   │
+│ RAIL  │ (Micro Nav)  │ (Espace de Travail Principal)    │ (Inspecteur) │ (Inspecteur   │
+│       │              │                                  │              │  Applicatif   │
+│ (48px │ • Dossiers   │ • Formulaires & Tableaux         │ • Fiche      │  Global)      │
+│  ou   │ • Filtres    │ • Grilles de VBlocks             │   Détaillée  │ • Diagnostics │
+│ 220px)│ • Liste      │ • Vues Graphiques / Canvas       │ • Propriétés │ • Postes/Tech │
+│       │   Maître     │ • Tableaux de Bord               │ • Édition    │ • Systèmes    │
+├───────┴──────────────┴──────────────────────────────────┴──────────────┴───────────────┤
+│ MACRO UTILITY BOTTOM DOCK (44px collapsed, 160-320px expanded)                         │
+│ [Onglets Système : Logs, Télémétrie, OBD]    [FOOTER SLOT : Actions de la Page Active] │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Macro-Niveau Applicatif (`<ApplicationShell />`)** :
+   - Socle souverain occupant `100vw` et `100vh` en permanence.
+   - Gère la Top Navbar, le rail de navigation des pages (Left Rail), le dock utilitaire inférieur (`MacroUtilityBottomDock`) et l'inspecteur système global (`MacroInspectorDock`).
+   - Ne se démonte **JAMAIS** lors de la navigation entre les écrans.
+2. **Micro-Niveau de Page (`<PageLayoutHost />`)** :
+   - Standardise l'intérieur de **chaque page**.
+   - Structure canonique en 3 zones :
+     - `innerLeft` : Navigation interne à la page ou liste maître (Master-List).
+     - `children` : Scène centrale (Canvas, formulaires, tables, VBlocks).
+     - `innerRight` : Inspecteur contextuel de l'objet sélectionné.
+   - Intègre le hook `useFooterSlot()` pour déporter les boutons d'action en bas d'écran sans casser la grille.
+
+---
+
+## 2. Matrice de Décision : Où placer chaque élément d'interface ?
+
+Pour éviter toute confusion lors de la génération de code par des agents IA, appliquez cette matrice sans déviation :
+
+| Élément d'interface souhaité | Emplacement obligatoire | Outil / Propriété |
+| :--- | :--- | :--- |
+| **Titre de l'application, switch de garage/tenant, profil** | Top Navbar | `<ApplicationShell title="..." subtitle="..." userRole="..." />` |
+| **Navigation entre les grandes pages du logiciel** | Left Navigation Rail | `<ApplicationShell pages={APP_PAGES} />` |
+| **Titre de la page active, breadcrumbs** | En-tête de page | `<PageLayoutHost title="..." showBreadcrumb={true} />` |
+| **Liste des dossiers, catégories, liste maître d'ordres/véhicules** | Volet gauche interne | `<PageLayoutHost innerLeft={<MasterList />} />` |
+| **Contenu principal, formulaire de saisie, tableau de données** | Scène centrale | `<PageLayoutHost>{/* Contenu */}</PageLayoutHost>` |
+| **Fiche détaillée d'un élément sélectionné, métadonnées** | Volet droit interne | `<PageLayoutHost innerRight={<ObjectInspector />} />` |
+| **Bouton d'action principal de la page ("Sauvegarder", "Valider Devis")** | Dock bas (Footer Slot) | `useFooterSlot(<button>Valider Devis</button>)` |
+| **Console d'audit, télémétrie, logs d'atelier, dictée vocale** | Dock bas utilitaire | Géré nativement par `ApplicationShell` |
+| **Diagnostic global, paramètres transverses, matrice des modules** | Dock droit applicatif | Géré via `useAppInspectorContext()` |
+
+> 🚫 **INTERDICTION FORMELLE** :
+> - Ne créez JAMAIS de barre d'action flottante (`fixed bottom-4`) à l'intérieur d'une page : utilisez TOUJOURS `useFooterSlot()`.
+> - Ne créez JAMAIS de panneau d'inspection en modal plein écran quand il s'agit d'inspecter un objet de la liste : utilisez TOUJOURS `innerRight`.
+> - Ne réinventez JAMAIS un composant `<Sidebar />` fait maison : configurez les `pages` dans `ApplicationShell`.
+
+---
+
+## 3. Guide de Construction Pas-à-Pas (Le Golden Path)
+
+### Étape 1 : Définir la configuration des pages avec RBAC
+Créez la liste déclarative des pages de votre application avec leurs rôles d'accès :
+
+```tsx
+import type { NavigationItemConfig } from '@codernic/react-layout-engine';
+
+export const APP_PAGES: NavigationItemConfig[] = [
+  {
+    id: 'orders',
+    label: 'Atelier & Ordres',
+    icon: 'Wrench',
+    requiredRoles: ['worker', 'manager', 'admin'],
+  },
+  {
+    id: 'inventory',
+    label: 'Stock Pièces',
+    icon: 'Boxes',
+    requiredRoles: ['manager', 'admin'],
+  },
+  {
+    id: 'fiduciary',
+    label: 'Facturation Fiduciaire',
+    icon: 'CreditCard',
+    requiredRoles: ['super_admin'],
+  },
+];
+```
+
+### Étape 2 : Créer une Page conforme avec `PageLayoutHost`
+Chaque vue métier doit suivre le triptyque : Master List (`innerLeft`), Espace de Travail (`children`), Inspecteur (`innerRight`), et Actions (`useFooterSlot`) :
+
+```tsx
+import React, { useState } from 'react';
+import { PageLayoutHost, useFooterSlot } from '@codernic/react-layout-engine';
+
+export function OrdersPage() {
+  const [selectedId, setSelectedId] = useState<string>('ORD-01');
+
+  // Déport de l'action principale dans le dock bas
+  useFooterSlot(
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-neutral-400">Ordre : {selectedId}</span>
+      <button
+        onClick={() => alert('Validation')}
+        className="px-3 py-1 text-xs rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold cursor-pointer"
+      >
+        Valider les Travaux
+      </button>
+    </div>
+  );
+
+  return (
+    <PageLayoutHost
+      pageId="orders"
+      title="Ordres de Réparation"
+      badge="3 en cours"
+      showBreadcrumb={true}
+      // 1. Liste Maître
+      innerLeft={
+        <div className="p-3 space-y-2">
+          <div className="text-xs font-bold text-neutral-400">Dossiers en cours</div>
+          {['ORD-01', 'ORD-02', 'ORD-03'].map((id) => (
+            <div
+              key={id}
+              onClick={() => setSelectedId(id)}
+              className={`p-2 rounded text-xs cursor-pointer ${
+                selectedId === id ? 'bg-neutral-800 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900'
+              }`}
+            >
+              {id} — Remplacement plaquettes
+            </div>
+          ))}
+        </div>
+      }
+      // 2. Inspecteur d'Objet
+      innerRight={
+        <div className="p-3 space-y-3 text-xs">
+          <div className="font-bold text-white border-b border-neutral-800 pb-2">Détails du Dossier</div>
+          <p>ID : <span className="font-mono text-emerald-400">{selectedId}</span></p>
+          <p>Statut : <span className="text-amber-400">En réparation</span></p>
+        </div>
+      }
+    >
+      {/* 3. Scène Centrale */}
+      <div className="p-4 space-y-4">
+        <h2 className="text-base font-bold text-white">Fiche d'intervention {selectedId}</h2>
+        <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300">
+          Formulaire complet des opérations et pièces requises...
+        </div>
+      </div>
+    </PageLayoutHost>
+  );
+}
+```
+
+### Étape 3 : Monter le Macro-Shell Applicatif
+Dans votre racine applicative (`App.tsx`), montez `<ApplicationShell />` :
+
+```tsx
+import React from 'react';
+import { Provider } from 'react-redux';
+import {
+  ApplicationShell,
+  LayoutSettingsProvider,
+  useLayoutNavigation,
+} from '@codernic/react-layout-engine';
+import { store } from './store';
+import { APP_PAGES, OrdersPage } from './pages/OrdersPage';
+
+export function App() {
+  const { activePageId } = useLayoutNavigation();
+
+  return (
+    <Provider store={store}>
+      <LayoutSettingsProvider>
+        <ApplicationShell
+          title="Codernic Enterprise Suite"
+          subtitle="Standard SOTA"
+          userRole="manager"
+          pages={APP_PAGES}
+          fallbackPageId="orders"
+          statusIndicator={<span className="text-xs text-emerald-400">● En ligne</span>}
+        >
+          {activePageId === 'orders' && <OrdersPage />}
+          {activePageId === 'inventory' && <div className="p-4 text-white">Stock Central</div>}
+        </ApplicationShell>
+      </LayoutSettingsProvider>
+    </Provider>
+  );
+}
+```
+
+---
+
+## 4. Guardrails & Sécurités Intégrées
+
+Le Layout Engine intègre 9 gardes-fous automatiques :
+
+1. **G1 - Circuit Breaker de Redirection (Max 2 sauts)** :
+   Si un utilisateur tente d'accéder à une page non autorisée et que la page de repli est également non autorisée, la boucle est immédiatement interrompue et un écran souverain de diagnostic 403 ([`AccessRestrictedGuard`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/packages/react-layout-engine/src/components/guards/AccessRestrictedGuard.tsx)) s'affiche.
+2. **G3 - Arbitrage Spatial Cardinal (Anti-Collision de Docks Droits)** :
+   Sur les résolutions $< 1440\text{px}$, si l'inspecteur d'objet interne (`innerRight`) est ouvert, le dock applicatif externe est automatiquement replié pour éviter d'étouffer la scène centrale.
+3. **G4 - Alerte Anti-Squeeze avec Hystérésis (60px)** :
+   Si la largeur de la scène centrale passe sous les $380\text{px}$, le bandeau [`LayoutSqueezeBanner`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/packages/react-layout-engine/src/components/shell/LayoutSqueezeBanner.tsx) s'affiche avec options de repli immédiat. Il ne s'efface que lorsque la scène dépasse $440\text{px}$ pour éviter tout scintillement.
+4. **G5 - Nettoyage Automatique du Footer Slot** :
+   Dès qu'une page se démonte, son contenu injecté dans `useFooterSlot()` est immédiatement purgé. Aucun bouton résiduel n'apparaît sur la page suivante.
+5. **G6 - RBAC Dynamique sur les VBlocks** :
+   Contrôlez finement l'accès à un bloc particulier via `<VBlockSecurityRenderer policy="hidden|disabled|grayed" requiredRoles={['manager']}>`.
+6. **G8 - Verrouillage du Mode Édition** :
+   Le mode personnalisation et ajout de widgets n'est accessible qu'aux utilisateurs disposant du rôle `super_admin`.
+
+---
+
+## 5. Recettes de Référence
+
+Consultez le dossier `guide/recipes/` pour des implémentations de référence complètes :
+- [`recipes/01_root_shell.tsx`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/guide/recipes/01_root_shell.tsx) : Socle minimaliste.
+- [`recipes/02_custom_widget.tsx`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/guide/recipes/02_custom_widget.tsx) : Enregistrement de widgets dans `widgetRegistry`.
+- [`recipes/03_inter_widget_channel.tsx`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/guide/recipes/03_inter_widget_channel.tsx) : Communication Pub/Sub via `useWidgetChannel`.
+- [`recipes/04_application_shell_and_page_layout.tsx`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/guide/recipes/04_application_shell_and_page_layout.tsx) : Pattern ApplicationShell + PageLayoutHost.
+- [`recipes/05_complete_page_master_detail_inspector.tsx`](file:///home/tadeop/dev/Codernic-Workspace/Codernic-Layout-Engine/guide/recipes/05_complete_page_master_detail_inspector.tsx) : **Exemple SOTA complet d'un écran métier avec Master List, Canvas, Inspecteur et FooterSlot**.
+
+---
+
+## 6. Vérification de Conformité (CompileGate)
+
+Avant toute soumission de code, exécutez la chaîne de vérification souveraine :
+
+```bash
+# Vérification TypeScript & Tests Unitaires du Layout Engine
+pnpm --filter @codernic/react-layout-engine test
+pnpm --filter @codernic/react-layout-engine build
+
+# Vérification du CompileGate Dual-Stack CPK
+coc-pm build
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/layout-engine
+
+> ⚠️ **MANDATORY GOVERNANCE DIRECTIVE (RULE-COC-CONSUME-002)**:
+> AI Agents and developers violating the prohibitions below will be immediately rejected at CompileGate, Sentinel and CFEM verification.
+> There is strictly **ONE AND ONLY ONE** layout standard across all Codernic applications: `<ApplicationShell />` + `<PageLayoutHost />`.
+
+---
+
+### ❌ Anti-Pattern 1: Créer une barre d'action flottante en bas de page au lieu d'utiliser `useFooterSlot()`
+- **Prohibé :**
+  ```tsx
+  // ⛔ ANTI-PATTERN MAJEUR : Barre d'action faite maison flottant au bas de l'écran
+  export function MyPage() {
+    return (
+      <div className="relative">
+        <MyContent />
+        <div className="fixed bottom-4 right-4 flex gap-2 z-50">
+          <button>Valider</button>
+        </div>
+      </div>
+    );
+  }
+  ```
+- **Pourquoi c'est catastrophique :**
+  Chevauche le dock bas utilitaire (`MacroUtilityBottomDock`), casse l'adaptation sur tablettes et mobiles, crée des fuites d'événements tactiles et viole la grille cardinale.
+- **Solution Obligatoire :**
+  Utilisez le hook souverain `useFooterSlot(<button>Valider</button>)`. Le bouton est automatiquement téléporté dans la barre d'action du dock bas, et nettoyé sans résidu dès que la page est quittée (Guardrail G5).
+
+---
+
+### ❌ Anti-Pattern 2: Placer l'inspecteur d'objet dans un Modal Popup au lieu d'utiliser `innerRight`
+- **Prohibé :**
+  ```tsx
+  // ⛔ ANTI-PATTERN : Ouvrir un dialog modal géant pour inspecter un élément d'une liste
+  {selectedItem && (
+    <Dialog open={true} onClose={() => setSelectedItem(null)}>
+      <DialogContent><ItemDetails item={selectedItem} /></DialogContent>
+    </Dialog>
+  )}
+  ```
+- **Pourquoi c'est proscrit :**
+  Masque la scène centrale, empêche l'utilisateur de comparer les données avec d'autres lignes de la table, et détruit l'ergonomie multi-volets.
+- **Solution Obligatoire :**
+  Injectez les détails de l'objet dans la prop `innerRight` de `<PageLayoutHost innerRight={<ItemDetails item={selectedItem} />} />`.
+
+---
+
+### ❌ Anti-Pattern 3: Réinventer un composant Sidebar / Navbar sur mesure
+- **Prohibé :**
+  Créer un composant `MyCustomSidebar.tsx` ou des `<aside className="w-64 bg-zinc-900">` avec des boutons et des `onClick` faits maison.
+- **Pourquoi c'est proscrit :**
+  Bypass le système de permissions RBAC, ignore la synchronisation Redux, désactive le repli automatique sur mobile/tablette (<768px), et génère de la duplication de code interdite par le mandat souverain.
+- **Solution Obligatoire :**
+  Déclarez vos pages dans `APP_PAGES: NavigationItemConfig[]` et confiez leur affichage à `<ApplicationShell pages={APP_PAGES} />`.
+
+---
+
+### ❌ Anti-Pattern 4: Utiliser `useState` local pour la navigation principale
+- **Prohibé :**
+  ```tsx
+  // ⛔ ANTI-PATTERN : Gestion de l'écran actif par état local
+  const [currentPage, setCurrentPage] = useState('orders');
+  ```
+- **Pourquoi c'est proscrit :**
+  Empêche les gardes RBAC d'intercepter les accès illicites, rend impossible la synchronisation avec l'historique URL ou les événements distants, et casse l'accès aux pages de repli (Circuit Breaker G1).
+- **Solution Obligatoire :**
+  Utilisez le hook `const { activePageId, navigate } = useLayoutNavigation()` ou dispatchez l'action Redux `dispatch(navigateIntent({ pageId: 'orders' }))`.
+
+---
+
+### ❌ Anti-Pattern 5: Enrober le Layout Engine dans une route React Router
+- **Prohibé :**
+  ```tsx
+  // ⛔ ANTI-PATTERN CATASTROPHIQUE : Le LayoutEngine traité comme une simple vue
+  <Routes>
+    <Route path="/home" element={<HomeView />} />
+    <Route path="/app" element={<ApplicationShell ... />} />
+  </Routes>
+  ```
+- **Pourquoi c'est proscrit :**
+  Le Layout Engine est l'ossature globale de l'application (`100vw` / `100vh`). Le démonter lors d'un changement de route détruit l'état des docks, coupe les websockets et réinitialise tous les onglets d'outils ouverts.
+- **Solution Obligatoire :**
+  Montez `<ApplicationShell />` à la racine de l'application, et injectez les pages enfants dans la scène centrale.
+
+---
+
+### ❌ Anti-Pattern 6: Largeurs rigides en pixels (`w-[800px]`) sur les conteneurs
+- **Prohibé :**
+  Fixer des dimensions en pixels durs sur les conteneurs de la scène centrale ou des panneaux latéraux.
+- **Pourquoi c'est proscrit :**
+  Dès que l'utilisateur redimensionne un dock ou ouvre l'inspecteur, la scène centrale est comprimée, ce qui déclenche immédiatement le bandeau d'alerte critique `LayoutSqueezeBanner` (Guardrail G4).
+- **Solution Obligatoire :**
+  Utilisez des conteneurs fluides (`w-full`, `min-w-0`, `flex-1`) et appuyez-vous sur les Container Queries (`@container`) et le hook `useContainerBreakpoint()`.
+
+---
+
+### ❌ Anti-Pattern 7: Dépassement de la limite de partitions VBlock (> 4 splits)
+- **Prohibé :**
+  Ajouter plus de 4 partitions directes dans un même conteneur `VBlock`.
+- **Pourquoi c'est proscrit :**
+  Déclenche une erreur bloquante du Layout Engine Split Guard et dégrade l'affichage sur écrans standards.
+- **Solution Obligatoire :**
+  Si plus de 4 panneaux sont nécessaires, imbriquez récursivement un sous-VBlock dans l'une des branches.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/ragtime">
+      <implementation><![CDATA[
+# Codernic Ragtime — Implementation & User Manual (SPEC-COC-GUIDE-001)
+
+> **Package** : `@codernic/ragtime` (v0.2.5)  
+> **Classification** : Enterprise Code Intelligence, BitNet b1.58 Hybrid RAG Engine, Standalone Server & Universal React UI Suite  
+> **License** : Proprietary & Confidential Codernic Core Team  
+> **Standard Reference** : `SPEC-COC-GUIDE-001`  
+
+---
+
+## 1. Mental Model & Architecture
+
+`Codernic-Ragtime` is the sovereign, high-performance hybrid RAG and code intelligence substrate for the entire Codernic ecosystem. It merges discrete ternary embedding algebra (BitNet b1.58), sublinear lexical retrieval (BM25 with camelCase/snake_case tokenization), AST prefix trie resolution, and an epistemic 4-zone policy layer over an ACID embedded Redb storage substrate.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                      Presentation & Consumers Layer                                            │
+│  React Suite (@codernic/react-ragtime) │ TypeScript SDK (@codernic/ragtime) │ CLI / MCP stdio   │
+└────────────────────────────────────────┬────────────────────────────────────────────────────────┘
+                                         │ JSON-RPC 2.0 (MCP) | REST JSON (Axum 0.7) | In-process
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                      Server & Protocol Layer (ragtime-server)                                   │
+│  Axum REST (:31337) │ MCP Protocol Engine (7 Tools) │ OpenAPI Swagger UI (/docs)                │
+└────────────────────────────────────────┬────────────────────────────────────────────────────────┘
+                                         │ Arc<Ragtime2Runtime>
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                      Domain Core Engine (ragtime-core & ragtime-policy)                         │
+│  BitNet b1.58 (1024-dim) │ BM25 Inverted Index │ AST Prefix Trie │ Reciprocal Rank Fusion (RRF) │
+│  Policy 4-Zone Partitioning (Code, Docs, Tests, Artifacts) │ Dual-Oracle Epistemic Validator    │
+└────────────────────────────────────────┬────────────────────────────────────────────────────────┘
+                                         │ ACID Mapped Tables
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                      Infrastructure & Storage Substrate                                         │
+│  Embedded Redb Database (ragtime2.redb) │ Tree-sitter Polyglot (28 grammars) │ Ingestion Filter │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Invariants:
+1. **Discrete Embedding Model (BitNet b1.58)**: Vectors are strictly quantized to 1-bit binary sign and 2-bit ternary trits $\{-1, 0, +1\}$ with 64-bit packed SIMD Hamming distance (`XOR + POPCNT`) and zero-skipping dot products.
+2. **Deterministic RRF Consensus**: Lexical BM25, semantic BitNet, and AST prefix matches are fused through 3-tier Reciprocal Rank Fusion with $k = 60.0$.
+3. **Four-Zone Sovereignty**: Ingestion and retrieval strictly enforce isolation across `Zone1Code`, `Zone2Docs`, `Zone3Tests`, and `Zone4Artifacts`.
+4. **Zero Path Escapes**: All file operations are canonicalized and bound strictly to the target workspace root.
+
+---
+
+## 2. Installation & Initialization Lifecycle
+
+### 2.1 Installation via COC Package Manager
+```bash
+# Add package to your consumer workspace
+coc-pm add @codernic/ragtime@0.2.5
+
+# Verify cryptographic BLAKE3 integrity of the package
+coc-pm verify
+```
+
+### 2.2 Launching the Precompiled Standalone Server Binary
+The `.cpk` package embeds the release-compiled standalone binary `ragtime-server` in `bin/`:
+```bash
+# Start the HTTP REST API and OpenAPI server on default port 31337
+./bin/ragtime-server serve --port 31337 --data-dir ~/.codernic/ragtime.db
+
+# Index an entire workspace or repository
+./bin/ragtime-server index --path /path/to/my-repo --data-dir ~/.codernic/ragtime.db
+
+# Perform an instant CLI hybrid search query
+./bin/ragtime-server search --query "authentication jwt token validator" --top-k 5
+
+# Launch the Model Context Protocol (MCP) server for autonomous AI agents
+./bin/ragtime-server mcp --data-dir ~/.codernic/ragtime.db
+```
+
+---
+
+## 3. Canonical Recipes (Golden Paths)
+
+### Recipe 1: Rust In-Process Runtime Integration
+```rust
+use std::path::PathBuf;
+use ragtime_core::app::{Ragtime2Config, Ragtime2Runtime};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let config = Ragtime2Config {
+        db_path: PathBuf::from("./.codernic/ragtime.redb"),
+        embedding_dim: 1024,
+        deadzone_threshold: 12,
+        chunk_size_lines: 60,
+    };
+
+    let runtime = Ragtime2Runtime::init(config)?;
+
+    // Index a file
+    let indexed_chunks = runtime.index_file("src/main.rs")?;
+    println!("Indexed {} chunks", indexed_chunks);
+
+    // Hybrid search
+    let results = runtime.hybrid_search("fn main", 5)?;
+    for hit in results {
+        println!("Hit: {} (score: {:.4})", hit.file_path, hit.score);
+    }
+
+    Ok(())
+}
+```
+
+### Recipe 2: TypeScript Client SDK
+```typescript
+import { RagtimeClient } from '@codernic/ragtime';
+
+const client = new RagtimeClient({
+  baseUrl: 'http://127.0.0.1:31337',
+  timeoutMs: 10000,
+});
+
+// Check daemon health
+const health = await client.getHealth();
+console.log('Ragtime status:', health.status);
+
+// Query hybrid search
+const response = await client.search({
+  query: 'Authentication token validation',
+  top_k: 5,
+  min_score: 0.1,
+});
+
+for (const hit of response.results) {
+  console.log(`[${hit.score.toFixed(3)}] ${hit.file_path}:${hit.start_line}-${hit.end_line}`);
+}
+```
+
+### Recipe 3: React Provider & VBlock Widgets
+```tsx
+import React from 'react';
+import {
+  RagtimeProvider,
+  RagtimeSearchWidget,
+  RagtimeNeuraVisualizerWidget,
+  RagtimeTelemetryWidget,
+} from '@codernic/react-ragtime';
+
+export function RagtimeStudioApp() {
+  return (
+    <RagtimeProvider baseUrl="http://127.0.0.1:31337" autoPollStatus={true} pollIntervalMs={3000}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
+        <RagtimeSearchWidget defaultScope="all" />
+        <RagtimeNeuraVisualizerWidget initialShader="cyber" height={450} />
+      </div>
+      <div style={{ padding: '0 1rem 1rem' }}>
+        <RagtimeTelemetryWidget refreshIntervalMs={2000} />
+      </div>
+    </RagtimeProvider>
+  );
+}
+```
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Compilation Standard**: CompileGate requires `-D warnings = 0` on all crates.
+2. **Deterministic Storage**: Redb tables (`chunks_v2`, `vectors_ternary_v2`, `vectors_binary_v2`, `symbols_v2`) use BLAKE3 checksums for atomic updates.
+3. **No External Runtime Dependencies**: Standalone binary runs on bare-metal Linux without Docker, external vector databases, or remote APIs.
+4. **Idempotence**: Re-indexing the same file content produces identical BLAKE3 digests and vector representations without leaking memory.
+
+---
+
+## 5. Quick Verification
+To verify consumer integration:
+```bash
+cargo check --workspace
+pnpm test
+coc-pm verify
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Codernic Ragtime — Anti-Patterns & Prohibitions (SPEC-COC-GUIDE-001)
+
+This document specifies explicit prohibitions and architectural failure patterns that autonomous AI agents and human developers must **NEVER** introduce when consuming `@codernic/ragtime`.
+
+---
+
+## 1. Direct Internal Sub-Path Imports (`FORBIDDEN_INTERNAL_IMPORT`)
+
+❌ **STRICTLY FORBIDDEN**: Importing from internal crate subpaths or frontend internal dist files:
+```typescript
+// ❌ ANTI-PATTERN: Bypasses public barrel export and breaks on internal refactoring
+import { RagtimeState } from '@codernic/react-ragtime/src/context/RagtimeContext';
+import { Bm25Scorer } from 'ragtime-core::features::sparse_inverted::bm25_ranker';
+```
+
+✅ **CANONICAL SOVEREIGN WAY**: Always import through root package barrels:
+```typescript
+// ✅ CORRECT: Clean public contract consumption
+import { RagtimeProvider, useRagtime } from '@codernic/react-ragtime';
+import { RagtimeClient } from '@codernic/ragtime';
+```
+
+---
+
+## 2. Unlinked Multi-Instance Client in React Components (`DUPLICATE_CLIENT_INSTANCE`)
+
+❌ **STRICTLY FORBIDDEN**: Instantiating raw `new RagtimeClient(...)` inside every individual widget or hook:
+```tsx
+// ❌ ANTI-PATTERN: Leaks HTTP connections and bypasses provider caching & polling
+function MyWidget() {
+  const client = new RagtimeClient({ baseUrl: 'http://127.0.0.1:31337' });
+  // ...
+}
+```
+
+✅ **CANONICAL SOVEREIGN WAY**: Wrap the application tree with `RagtimeProvider` and consume `useRagtime()`:
+```tsx
+// ✅ CORRECT: Shared lifecycle, coordinated polling, single connection pool
+function MyWidget() {
+  const { results, search, loading } = useRagtime();
+  // ...
+}
+```
+
+---
+
+## 3. Path Traversal & Unsanitized Ingestion (`PATH_TRAVERSAL_HAZARD`)
+
+❌ **STRICTLY FORBIDDEN**: Calling `runtime.index_file()` or MCP `ragtime_index` with un-sanitized relative escape paths (e.g. `../../etc`):
+```rust
+// ❌ ANTI-PATTERN: Attempts to escape workspace boundary
+runtime.index_file("../../../secret_file.rs")?;
+```
+
+✅ **CANONICAL SOVEREIGN WAY**: Always canonicalize paths within the declared workspace root:
+```rust
+// ✅ CORRECT: Canonical containment check
+let canonical = std::fs::canonicalize(target_path)?;
+if !canonical.starts_with(&workspace_root) {
+    return Err(RagtimeError::SecurityViolation("Path escapes workspace root".into()));
+}
+```
+
+---
+
+## 4. Manual Vector Dot-Product Implementation (`ALGEBRA_BYPASS`)
+
+❌ **STRICTLY FORBIDDEN**: Writing manual scalar float multiplication loops for BitNet embeddings:
+```rust
+// ❌ ANTI-PATTERN: Destroys sub-millisecond BitNet performance and SIMD zero-skip benefits
+let mut score = 0.0;
+for i in 0..1024 {
+    score += vec_a[i] * vec_b[i];
+}
+```
+
+✅ **CANONICAL SOVEREIGN WAY**: Use the native SIMD-accelerated zero-skipping popcount operators:
+```rust
+// ✅ CORRECT: 64-bit word packed bitwise algebra
+let distance = popcnt::hamming_distance_packed(&bin_a, &bin_b);
+let score = zero_skip::dot_product_ternary_packed(&tern_a, &tern_b);
+```
+
+---
+
+## 5. Unhandled Unwraps in Server Handlers (`PANIC_VULNERABILITY`)
+
+❌ **STRICTLY FORBIDDEN**: Using `.unwrap()` or `.expect()` inside Axum route handlers or MCP tool execution:
+```rust
+// ❌ ANTI-PATTERN: A single corrupted chunk or malformed payload crashes the entire daemon
+let chunk: DocumentChunk = serde_json::from_slice(&bytes).unwrap();
+```
+
+✅ **CANONICAL SOVEREIGN WAY**: Propagate typed errors returning explicit JSON-RPC error codes or HTTP 4xx/5xx:
+```rust
+// ✅ CORRECT: Graceful degradation with audit telemetry
+let chunk: DocumentChunk = serde_json::from_slice(&bytes)
+    .map_err(|e| RagtimeError::SerializationError(e.to_string()))?;
+```
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/state-kernel">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/state-kernel
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS (SPEC-COC-GUIDE-001)**:
+> Autonomous AI coding agents and developers MUST read this document before generating or modifying any code that imports or interacts with `@codernic/state-kernel`.
+> Do NOT guess APIs or invent wrappers. Adhere strictly to the mental model, initialization lifecycle, and canonical recipes below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`@codernic/state-kernel` is the **deterministic state micro-kernel and unified communication layer** for all Codernic frontend applications and backend services.
+
+```text
++-----------------------------------------------------------------------------------------------------+
+|                                            FRONTEND REACT                                           |
+|                                                                                                     |
+|  [ UI Component ] --(dispatch Redux Action)----------------------------------------+                |
+|        ^                                                                            |               |
+|        |                                                                            v               |
+|  (useSelector)                                                                 [ Redux Store ]      |
+|        |                                                                            |               |
+|        |           +----------------------------------------------------------------+               |
+|        |           |                                                                                |
+|        |           v                                                                                |
+|        |    [ SUPERVISED SAGA ]  <=== EXCLUSIVE ASYNC I/O & SIDE-EFFECT SUPERVISOR                  |
+|        |           |                                                                                |
+|        |           v (yield* sagaChannelRequest)                                                    |
+|        |    [ KERNEL CHANNEL ] (IoC Token: KernelChannelToken)                                      |
+|        |           |                                                                                |
+|        |    +------+------+------+                                                                  |
+|        |    |             |      |                                                                  |
+|        | [Tauri IPC]   [Axum] [Mock]                                                                |
++--------|-------------------------|------------------------------------------------------------------+
+         |                         |  KernelEnvelope<T> (Single Canonical Wire Contract)
++--------|-------------------------|------------------------------------------------------------------+
+|        |                         |              BACKEND (Rust Axum / Tokio / Tauri)                 |
+|        |                         v                                                                  |
+|        |                 [ INGRESS GATEWAY ]                                                        |
+|        |                         |                                                                  |
+|        |                         v                                                                  |
+|        |                 [ Domain Command Handler / Service ]                                       |
+|        |                         |                                                                  |
+|        |                         v                                                                  |
+|        +---------------- [ EGRESS RESPONSE / STREAM ]                                               |
++-----------------------------------------------------------------------------------------------------+
+```
+
+### The 4 Inviolable Pillars
+1. **Redux Toolkit is the Single Source of Truth (SSOT):**  
+   All persistent, shared, navigable, and audit-logged application state resides in Redux Toolkit.
+2. **Redux-Saga is the Exclusive Async/IO Supervisor:**  
+   Components **never** invoke HTTP (`fetch`), WebSocket, or Tauri IPC directly. All side-effects must be dispatched through Redux actions and orchestrated by Sagas.
+3. **KernelChannel is the Exclusive Transport Gateway:**  
+   Sagas never execute protocol-specific networking directly. They delegate to `KernelChannel` using `sagaChannelRequest` or `sagaChannelStreamToRedux`.
+4. **Mandatory Signal Reconciliation:**  
+   Fine-grained reactive signals (`createSignal`) are strictly reserved for high-frequency transients (60fps canvas, animations, sliders, token streams). Any signal state needing persistence or backend notification **must** be piped into Redux via `pipeSignalToRedux()`.
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### Step 1: Declare Service Token
+```typescript
+import { createServiceToken, type KernelChannel } from '@codernic/state-kernel';
+
+export const myAppChannelToken = createServiceToken<KernelChannel>(
+  'my-app-channel',
+  'Unified communication channel for MyApp'
+);
+```
+
+### Step 2: Instantiate Transport Adapter & KernelChannel
+```typescript
+import {
+  createKernelChannel,
+  createHttpAxumAdapter,
+  createTauriIpcAdapter,
+  createMockTransportAdapter,
+} from '@codernic/state-kernel';
+
+const adapter = typeof window !== 'undefined' && '__TAURI__' in window
+  ? createTauriIpcAdapter()
+  : createHttpAxumAdapter({ baseURL: '/api/v1' });
+
+export const appChannel = createKernelChannel({ adapter });
+```
+
+### Step 3: Register in StateKernel IoC Container
+```typescript
+import { getGlobalContainer } from '@codernic/state-kernel';
+
+getGlobalContainer().registerInstance(myAppChannelToken, appChannel);
+```
+
+### Step 4: Configure Redux Store with Saga Middleware
+```typescript
+import { configureStore } from '@reduxjs/toolkit';
+import createSagaMiddleware from 'redux-saga';
+import rootReducer from './slices';
+import { rootSaga } from './sagas';
+
+const sagaMiddleware = createSagaMiddleware();
+
+export const store = configureStore({
+  reducer: rootReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({ thunk: false, serializableCheck: false }).concat(sagaMiddleware),
+});
+
+sagaMiddleware.run(rootSaga);
+```
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+### Recipe A: Unidirectional RPC Request (Saga ➔ Backend ➔ Redux)
+```typescript
+import { put, takeLatest } from 'redux-saga/effects';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import { sagaChannelRequest } from '@codernic/state-kernel';
+import { appChannel } from '../channel';
+import { loadUserDataRequested, loadUserDataSucceeded, loadUserDataFailed } from './userSlice';
+
+interface UserDataRequest { userId: string }
+interface UserDataResponse { id: string; name: string; email: string }
+
+export function* handleLoadUserData(action: PayloadAction<UserDataRequest>): Generator<any, void, any> {
+  try {
+    const data: UserDataResponse = yield* sagaChannelRequest(
+      appChannel,
+      'users/get',
+      action.payload
+    );
+    yield put(loadUserDataSucceeded(data));
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    yield put(loadUserDataFailed(errorMsg));
+  }
+}
+
+export function* userSaga() {
+  yield takeLatest(loadUserDataRequested.type, handleLoadUserData);
+}
+```
+
+### Recipe B: Real-Time Telemetry Streaming into Redux
+```typescript
+import { takeLatest } from 'redux-saga/effects';
+import { sagaChannelStreamToRedux } from '@codernic/state-kernel';
+import { appChannel } from '../channel';
+import { startMetricsStreamRequested, metricChunkReceived, streamEncounteredError } from './metricsSlice';
+
+export function* handleMetricsStream(): Generator<any, void, any> {
+  yield* sagaChannelStreamToRedux(
+    appChannel,
+    'telemetry/live',
+    undefined,
+    (chunk) => metricChunkReceived(chunk),
+    (err) => streamEncounteredError(err.message)
+  );
+}
+
+export function* metricsSaga() {
+  yield takeLatest(startMetricsStreamRequested.type, handleMetricsStream);
+}
+```
+
+### Recipe C: Transient 60fps Signal Reconciled into Redux
+```typescript
+import { createSignal, pipeSignalToRedux } from '@codernic/state-kernel';
+import { store } from './store';
+import { setVolumeLevel } from './slices/audioSlice';
+
+// 1. High-frequency reactive signal (60fps canvas / audio level)
+export const volumeSignal = createSignal(0.75);
+
+// 2. Reconcile to Redux throttled to eliminate V8 garbage collection thrashing
+export const disconnectPipe = pipeSignalToRedux(volumeSignal, store, (val) => setVolumeLevel(val), {
+  throttleMs: 100,
+});
+```
+
+---
+
+## 4. Invariants & Wire Guarantees
+
+1. **Wire Format (`KernelEnvelope<T>`):**  
+   Every payload transmitted across the channel is automatically enclosed in a `KernelEnvelope`:
+   - `id`: Unique identifier (`req_...`, `res_...`, `evt_...`)
+   - `channel`: Logical route name (e.g. `users/get`, `wallboard/move`)
+   - `type`: `'request'` | `'response'` | `'event'` | `'stream_chunk'` | `'error'`
+   - `payload`: Strongly-typed body
+   - `timestamp`: Epoch milliseconds
+   - `correlationId`: Matched request id on responses and errors
+2. **Error Isolation:**  
+   If a backend error occurs, an envelope with `type: 'error'` and structured `EnvelopeError { code, message, details }` is returned. `KernelChannel.request()` automatically unwraps it into a typed JavaScript `Error` with `.code` and `.details`.
+3. **No Direct Fetch / IPC in UI:**  
+   UI components dispatch Redux actions. Sagas execute channel requests. Results flow back to Redux reducers.
+4. **Terminology Policy:**  
+   Strict ban on non-engineering vocabulary (*sovereign* is prohibited). Use *Zero-Trust*, *Enterprise*, *KernelChannel*, *Local In-House*, or *TransportAdapter*.
+
+---
+
+## 5. Quick Verification
+
+To verify that your integration complies with State Kernel standards:
+```bash
+# 1. Typecheck the consumer project
+pnpm typecheck
+
+# 2. Run unit and integration tests
+pnpm test
+
+# 3. Verify COC package integrity
+coc-pm verify
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/state-kernel
+
+> ❌ **CRITICAL PROHIBITIONS FOR AI CODING AGENTS & DEVELOPERS**:
+> The following patterns violate Codernic architectural standards and will be rejected by CompileGate, Sentinel Radar, and code review audits.
+
+---
+
+### ❌ Anti-Pattern 1: Direct Network / IPC Invocations in React Components
+- **Prohibited:**
+  ```tsx
+  // BAD: In a React component or hook
+  useEffect(() => {
+    fetch('/api/v1/users/me').then(res => res.json()).then(setUser);
+    // OR
+    window.__TAURI__.invoke('fetch_user_data', { id });
+  }, []);
+  ```
+- **Why it Fails:**
+  - Bypasses Redux single-source-of-truth.
+  - Causes untraceable race conditions, duplicate requests, and broken offline support.
+  - Leaves UI unable to observe loading, failure, or retry states.
+- **Correct Solution:**
+  Dispatch a Redux action (`dispatch(fetchUserDataRequested({ id }))`). Let a supervised Redux-Saga handle the transport via `sagaChannelRequest`.
+
+---
+
+### ❌ Anti-Pattern 2: Unreconciled Reactive Signals for Global State
+- **Prohibited:**
+  ```tsx
+  // BAD: Using Signals for persistent business state without Redux reconciliation
+  export const userSessionSignal = createSignal<UserSession | null>(null);
+  ```
+- **Why it Fails:**
+  - Signals are designed for volatile, high-frequency transients (canvas rendering, 60fps sliders, real-time waveform meters).
+  - Unreconciled signals break time-travel debugging, serialization, SSR, and cross-module synchronization.
+- **Correct Solution:**
+  Keep global state in Redux. If a signal is used for smooth UI interactions, pipe its values into Redux using `pipeSignalToRedux`:
+  ```typescript
+  pipeSignalToRedux(sliderSignal, store, (v) => setVolumeAction(v), { throttleMs: 100 });
+  ```
+
+---
+
+### ❌ Anti-Pattern 3: Channel Invocations Outside of Redux-Saga
+- **Prohibited:**
+  ```typescript
+  // BAD: Calling channel.request directly inside a React component or custom hook
+  const handleClick = async () => {
+    const result = await appChannel.request('billing/invoice', payload);
+  };
+  ```
+- **Why it Fails:**
+  - Circumvents cancellation, retry, sequential execution (`takeLeading`/`takeLatest`), and error handling in Sagas.
+- **Correct Solution:**
+  Use Redux actions and execute `yield* sagaChannelRequest(appChannel, 'billing/invoice', payload)` in a Saga.
+
+---
+
+### ❌ Anti-Pattern 4: Illegal Deep Imports into Internal Paths
+- **Prohibited:**
+  ```typescript
+  // BAD: Importing unexposed internal source files
+  import { KernelChannelImpl } from '@codernic/state-kernel/src/channel/channel';
+  import { EventBus } from '@codernic/state-kernel/dist/bus/eventBus';
+  ```
+- **Why it Fails:**
+  - Deep paths are private implementation details and subject to breaking modifications across minor versions.
+- **Correct Solution:**
+  Import from the formal package entrypoints:
+  ```typescript
+  import { createKernelChannel, createServiceToken, sagaChannelRequest } from '@codernic/state-kernel';
+  ```
+
+---
+
+### ❌ Anti-Pattern 5: Bypassing the KernelEnvelope Wire Protocol
+- **Prohibited:**
+  ```rust
+  // BAD: In Rust backend, emitting raw JSON without KernelEnvelope framing
+  #[tauri::command]
+  pub fn my_command(data: String) -> String {
+      data
+  }
+  ```
+- **Why it Fails:**
+  - Frontend `KernelChannel` cannot correlate responses, track message IDs, or extract structured error codes.
+- **Correct Solution:**
+  Wrap all responses in `KernelEnvelope::response(&req, payload)` or `KernelEnvelope::error(&req, err)`.
+
+---
+
+### ❌ Anti-Pattern 6: Violating Terminology Invariants
+- **Prohibited:**
+  Using the banned term *"sovereign"* in code, comments, manifests, or type names (e.g. `SovereignEngine`, `sovereign_user_id`).
+- **Why it Fails:**
+  - Violates Codernic engineering discipline and clarity directives.
+- **Correct Solution:**
+  Use precise engineering terminology: `Zero-Trust`, `Enterprise`, `KernelChannel`, `Local In-House`, `TransportAdapter`.
+      ]]></anti_patterns>
+    </guide>
+    <guide package="@codernic/ui-components">
+      <implementation><![CDATA[
+# Implementation Guide — @codernic/ui-components
+
+> ⚠️ **MANDATORY DIRECTIVE FOR AI AGENTS**:
+> You MUST read this document before implementing code that imports `@codernic/ui-components`.
+> Do NOT guess APIs or invent wrappers. Adhere strictly to the recipes and constraints below.
+
+---
+
+## 1. Mental Model & Architecture
+
+`@codernic/ui-components` is the sovereign Atomic Design component library for all Codernic applications (Console, Security Center, Orchestrator, Settings, LEM Mobile).
+
+### 1.1 Atomic Design Hierarchy
+- **Atoms (`src/atoms`)**: Unsplittable UI primitives (`Button`, `IconButton`, `TabButton`, `Badge`, `BaseInput`, `ResizeHandle`, `Spinner`, `StatusBadge`, `Icons`).
+- **Molecules (`src/molecules`)**: Combinations of atoms with local behavior (`Card`, `Dropdown`, `Modal`, `ConfirmModal`, `SegmentedControl`, `ActionSheet`, `TileCard`, `List`, `ListItem`, `PortalSlot`).
+- **Organisms (`src/organisms`)**: Complex contextual subsystems (`DockAccordionPanel`, `ResponsiveTabHeader`, `ResponsiveNavbar`, `TerminalViewer`, `FastTable`, `ThemeStudio`).
+- **Layouts (`src/layouts`)**: Full-screen or split-pane page scaffolds (`DashboardGrid`, `ConsoleLayout`, `SplitViewLayout`, `DesktopWindowLayout`).
+- **Hooks (`src/hooks`)**: Pure headless logic (`useTheme`, `useDebounce`, `useLocalStorage`, `useModalManager`, `usePortalRegistry`).
+
+### 1.2 Dual-Theme Sovereign Color System
+All components are strictly dual-theme compliant (Dark & Light). Colors are defined using Sovereign CSS tokens:
+- **Surface**: `var(--cdn-surface-base)`, `var(--cdn-surface-panel)`, `var(--cdn-surface-interactive)`
+- **Border**: `var(--cdn-border-default)`, `var(--cdn-border-subtle)`, `var(--cdn-border-focus)`
+- **Text**: `var(--cdn-text-primary)`, `var(--cdn-text-secondary)`, `var(--cdn-text-muted)`
+- **Brand / Accent**: `var(--cdn-accent-blue)`, `var(--cdn-accent-cyan)`, `var(--cdn-accent-green)`
+
+### 1.3 State Model & Reactivity
+- **Uncontrolled & Controlled Support**: Components accept `value` + `onChange` (controlled) or `defaultValue` (uncontrolled).
+- **Zero Global State Coupling**: Components do not depend on external global stores (pure React components).
+- **LEM (Layout Engine Mobile) Ready**: Native touch targets (`min-h-[44px]`), drawer sheets, bottom sheets, and responsive fallbacks (<768px).
+
+---
+
+## 2. Initialization & Setup Lifecycle
+
+### 2.1 CSS Tokens Setup
+Ensure your application root imports the Codernic sovereign tokens:
+```css
+/* In your global styles or index.css */
+@import '@codernic/design-system/tokens.css';
+```
+
+Theme switching is controlled via the `.dark` class on the `document.documentElement` (`<html>`) element:
+```typescript
+// Dark Mode:
+document.documentElement.classList.add('dark');
+
+// Light Mode:
+document.documentElement.classList.remove('dark');
+```
+
+### 2.2 Imports
+Components can be imported from the package root or layer barrel files:
+```typescript
+// Root import (recommended)
+import {
+  Button,
+  DockAccordionPanel,
+  SegmentedControl,
+  ActionSheet,
+  TileCard,
+  DashboardGrid
+} from '@codernic/ui-components';
+
+// Subpath imports
+import { Button, StatusBadge } from '@codernic/ui-components/atoms';
+import { SegmentedControl, ActionSheet } from '@codernic/ui-components/molecules';
+import { DockAccordionPanel } from '@codernic/ui-components/organisms';
+import { DashboardGrid } from '@codernic/ui-components/layouts';
+```
+
+---
+
+## 3. Canonical Recipes (Golden Path)
+
+### Recipe A: Buttons & Action Triggers
+```tsx
+import { Button, IconButton, PlusIcon } from '@codernic/ui-components';
+
+export function ActionToolbar() {
+  return (
+    <div className="flex items-center gap-3">
+      <Button variant="primary" size="md" onClick={() => console.log('Saved')}>
+        Save Changes
+      </Button>
+      <Button variant="secondary" size="md" onClick={() => console.log('Canceled')}>
+        Cancel
+      </Button>
+      <IconButton
+        icon={<PlusIcon className="w-4 h-4" />}
+        ariaLabel="Add item"
+        variant="ghost"
+        onClick={() => console.log('Added')}
+      />
+    </div>
+  );
+}
+```
+
+### Recipe B: DockAccordionPanel with Responsive Tabs & Portal Slots
+```tsx
+import { useState } from 'react';
+import { DockAccordionPanel, type DockAccordionTab } from '@codernic/ui-components';
+
+export function WorkspaceDock() {
+  const [activeTab, setActiveTab] = useState('explorer');
+
+  const tabs: DockAccordionTab[] = [
+    {
+      id: 'explorer',
+      name: 'Explorer',
+      children: <div className="p-4 text-xs">File Tree Viewer</div>,
+    },
+    {
+      id: 'terminal',
+      name: 'Terminal',
+      usePortal: true, // Renders into a registered PortalSlot
+    },
+  ];
+
+  return (
+    <DockAccordionPanel
+      mode="left"
+      expandMode="push"
+      resizable={true}
+      tabs={tabs}
+      activeTabId={activeTab}
+      onTabChange={setActiveTab}
+      defaultSize={320}
+      minSize={200}
+      maxSize={600}
+    />
+  );
+}
+```
+
+### Recipe C: LEM Mobile Segmented Navigation & Action Sheet
+```tsx
+import { useState } from 'react';
+import { SegmentedControl, ActionSheet, TrashIcon, EditIcon } from '@codernic/ui-components';
+
+export function MobileNavigation() {
+  const [tab, setTab] = useState('overview');
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      <SegmentedControl
+        value={tab}
+        onChange={setTab}
+        fullWidth
+        options={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'metrics', label: 'Metrics', badge: '3' },
+          { value: 'settings', label: 'Settings' },
+        ]}
+      />
+
+      <ActionSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Asset Options"
+        actions={[
+          {
+            id: 'edit',
+            label: 'Edit Configuration',
+            icon: <EditIcon className="w-4 h-4" />,
+            onClick: () => console.log('Edit'),
+          },
+          {
+            id: 'delete',
+            label: 'Delete Asset',
+            icon: <TrashIcon className="w-4 h-4" />,
+            destructive: true,
+            onClick: () => console.log('Delete'),
+          },
+        ]}
+      />
+    </div>
+  );
+}
+```
+
+### Recipe D: DashboardGrid & TileCard
+```tsx
+import { DashboardGrid, TileCard, ActivityIcon } from '@codernic/ui-components';
+
+export function MetricsDashboard() {
+  return (
+    <DashboardGrid cols={3} gap="md">
+      <TileCard
+        title="CPU Telemetry"
+        icon={<ActivityIcon className="w-4 h-4" />}
+        status="healthy"
+        showDragHandle={true}
+        onMaximize={() => console.log('Maximize')}
+      >
+        <div className="h-32 flex items-center justify-center text-xs">
+          98.2% Nominal
+        </div>
+      </TileCard>
+    </DashboardGrid>
+  );
+}
+```
+
+### Recipe E: Data Intelligence, BI & Real-Time Telemetry Suite
+```tsx
+import {
+  DonutChart,
+  PieChart,
+  BarChart,
+  DotPlotChart,
+  SparklineChart,
+  WaveGraph,
+  TelemetryStreamGraph,
+  CircularProgressBar,
+  ProgressBar,
+} from '@codernic/ui-components';
+
+export function AnalyticsOverview() {
+  const donutData = [
+    { id: '1', label: 'Inference', value: 450, color: '#38bdf8' },
+    { id: '2', label: 'Vector DB', value: 280, color: '#10b981' },
+    { id: '3', label: 'Cache Hits', value: 170, color: '#f59e0b' },
+  ];
+
+  const barData = [
+    { id: 'm1', label: 'Jan', value: 45, target: 40 },
+    { id: 'm2', label: 'Feb', value: 68, target: 50 },
+    { id: 'm3', label: 'Mar', value: 92, target: 70 },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6 p-4">
+      {/* Radial Gauges & Bars */}
+      <div className="flex items-center gap-6">
+        <CircularProgressBar value={84} max={100} label="Core Engine Load" size={130} />
+        <ProgressBar orientation="vertical" direction="btt" value={65} height={130} showLabel />
+      </div>
+
+      {/* Donut & Pie Charts */}
+      <div className="grid grid-cols-2 gap-4">
+        <DonutChart data={donutData} centerLabel="Total Tokens" centerSublabel="900k" />
+        <PieChart data={donutData} showLegend />
+      </div>
+
+      {/* Column & Row Bar Charts */}
+      <BarChart data={barData} orientation="vertical" targetThreshold={55} unit=" TPS" />
+
+      {/* Real-time Waves & Telemetry Stream */}
+      <WaveGraph style="telemetry" height={100} badgeLabel="LIVE FREQUENCY SPECTRUM" />
+      <TelemetryStreamGraph
+        title="Inference Processing Stream"
+        samples={[{ timestamp: Date.now() - 10000, value: 45 }, { timestamp: Date.now(), value: 88 }]}
+        windowSeconds={60}
+      />
+    </div>
+  );
+}
+```
+
+### Recipe F: Date & Time Picker Suite (DatePicker, DateRangePicker, TimePicker, DateTimePicker)
+```tsx
+import {
+  DatePicker,
+  DateRangePicker,
+  TimePicker,
+  DateTimePicker,
+  DateFormatsEnum,
+} from '@codernic/ui-components';
+
+export function ReservationWidget() {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [range, setRange] = useState<[Date | null, Date | null]>([new Date(), null]);
+  const [time, setTime] = useState({ hours: 14, minutes: 30 });
+  const [dateTime, setDateTime] = useState<Date | undefined>(new Date());
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Single Date Picker */}
+      <DatePicker value={date} onChange={setDate} format={DateFormatsEnum.DD_MM_YYYY} clearable />
+
+      {/* Date Range Picker with Hover Preview & Presets (Rentals / Locations) */}
+      <DateRangePicker
+        value={range}
+        onChange={(start, end) => setRange([start ?? null, end ?? null])}
+        showPresets
+        clearable
+      />
+
+      {/* Time Picker with Numeric Steppers & Shortcuts */}
+      <TimePicker value={time} onChange={(t) => setTime(t)} format="24h" usePopover />
+
+      {/* Combined Unified DateTimePicker */}
+      <DateTimePicker value={dateTime} onChange={setDateTime} clearable />
+    </div>
+  );
+}
+```
+
+---
+
+## 4. Invariants & Guarantees
+
+1. **Zero `React.FC` Rule:**
+   All components are written as direct functional declarations (`export function ComponentName(props: Props)`). Never declare `React.FC` or `React.FunctionComponent`.
+
+2. **Strict Dual-Theme Contrast:**
+   Never hardcode single-mode utilities like `bg-zinc-900` or `text-white`. Use `--cdn-*` CSS variable tokens or dual utilities (`bg-zinc-100 dark:bg-zinc-900`, `text-zinc-900 dark:text-zinc-100`).
+
+3. **100% Technical English:**
+   All identifier names, props, comments, and types are written in standard Technical English.
+
+4. **Mutual Exclusivity on `DockAccordionTab`:**
+   - If `usePortal: true`, `children` MUST NOT be provided.
+   - If `children` is provided, `usePortal` MUST be `false` or `undefined`.
+   Type definitions strictly enforce this at compile time via discriminated union.
+
+5. **Responsive Mobile Safety:**
+   - On screens `< 768px`, `DockAccordionPanel` automatically clamps width to `calc(100vw - 40px)` in push mode.
+   - `ResponsiveTabHeader` automatically collapses tabs into an accessible dropdown select when width is constrained.
+   - Interactive touch targets enforce `min-h-[44px]` on mobile devices.
+
+6. **Mandatory Widget Reuse & Zero Widget Reinvention Law:**
+   - **Provided Widgets Exclusivity**: Consumer applications (`cos-studio`, `nowflow`, `Codernic-Security-Center-SSO`, `Codernic-Suite-Applications`, `dna`, etc.) MUST strictly consume the official widgets, molecules, and UI primitives provided by `@codernic/ui-components` (and sovereign companion packages).
+   - **Zero Reinvention Rule**: Consumer applications are strictly FORBIDDEN from reinventing, re-styling, or duplicating widgets (e.g. no raw HTML `<button>`, `<input>`, custom modals, bespoke cards, or duplicate controls).
+   - **Pure Function & Redux Law**: All React components MUST be declared as pure functions (`export function WidgetName(props)`), strictly banning `React.FC`. State MUST be managed via Redux dispatchers and selectors (no state sprawl or monolithic `useEffect` clusters; oversized components must be decomposed into sub-components).
+   - **Quality Gate Enforcement**: Violations are flagged as hard CFEM / CompileGate failures (`F2-ARCHITECTURAL-LAW`, `F4-SLOT-MATRIX`).
+
+---
+
+## 5. Quick Verification
+
+To verify that your project compiles and functions correctly with `@codernic/ui-components`:
+
+```bash
+# 1. Typecheck the consumer codebase
+pnpm exec tsc --noEmit
+
+# 2. Run unit & integration tests
+pnpm test
+
+# 3. Validate dual-stack CompileGate
+coc-pm build
+```
+      ]]></implementation>
+      <anti_patterns><![CDATA[
+# Anti-Patterns & Prohibited Practices — @codernic/ui-components
+
+This document outlines prohibited practices, common pitfalls, and architectural anti-patterns when importing and consuming `@codernic/ui-components`.
+
+---
+
+### ❌ Anti-Pattern 1: Declaring Components with `React.FC` or `React.FunctionComponent`
+
+- **Prohibited:**
+  ```tsx
+  export const UserWidget: React.FC<UserWidgetProps> = ({ title }) => {
+    return <div>{title}</div>;
+  };
+  ```
+- **Why it Fails:**
+  `React.FC` causes implicit typing issues, breaks standard generic parameter inference, interferes with proper props documentation, and violates Codernic Sovereign Engineering standards.
+- **Correct Solution:**
+  ```tsx
+  export function UserWidget({ title }: UserWidgetProps) {
+    return <div>{title}</div>;
+  }
+  ```
+
+---
+
+### ❌ Anti-Pattern 2: Hardcoding Dark-Only Zinc Utilities or Hex Colors
+
+- **Prohibited:**
+  ```tsx
+  <div className="bg-zinc-950 text-white border-zinc-800">
+    <p className="text-zinc-400">Content</p>
+  </div>
+  ```
+- **Why it Fails:**
+  Completely breaks in Light Mode. In Light theme, dark surfaces become black voids or white-on-white text becomes illegible, causing severe UX degradation and failing theme audit gates.
+- **Correct Solution:**
+  Use Sovereign CSS variable tokens:
+  ```tsx
+  <div className="bg-[var(--cdn-surface-panel,#0d0d10)] text-[var(--cdn-text-primary,#ffffff)] border border-[var(--cdn-border-default,#27272a)]">
+    <p className="text-[var(--cdn-text-muted,#a1a1aa)]">Content</p>
+  </div>
+  ```
+  Or use paired light/dark classes:
+  ```tsx
+  <div className="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-800">
+  ```
+
+---
+
+### ❌ Anti-Pattern 3: Violating Mutual Exclusivity on `DockAccordionTab`
+
+- **Prohibited:**
+  ```tsx
+  const tabs = [
+    {
+      id: 'tab-1',
+      name: 'Logs',
+      usePortal: true,
+      children: <LogsViewer /> // ❌ COMPILE ERROR & RUNTIME REJECTION
+    }
+  ];
+  ```
+- **Why it Fails:**
+  `usePortal: true` signals that the tab body is rendered into an external decoupled portal slot (`<PortalSlot id="tab-1" />`). Supplying `children` simultaneously is ambiguous and rejected by TypeScript discriminated unions.
+- **Correct Solution:**
+  ```tsx
+  // Option A: Portal Slot
+  const portalTab: DockAccordionTab = {
+    id: 'tab-1',
+    name: 'Logs',
+    usePortal: true
+  };
+
+  // Option B: Inline Children
+  const inlineTab: DockAccordionTab = {
+    id: 'tab-2',
+    name: 'Metrics',
+    children: <MetricsViewer />
+  };
+  ```
+
+---
+
+### ❌ Anti-Pattern 4: Workspace Boundary Leaks via Relative Paths
+
+- **Prohibited:**
+  ```json
+  "dependencies": {
+    "@codernic/ui-components": "link:../../ui-components"
+  }
+  ```
+- **Why it Fails:**
+  Breaks isolated builds, CI pipelines, and cross-machine deployments.
+- **Correct Solution:**
+  Install and manage using `coc-pm`:
+  ```bash
+  coc-pm add @codernic/ui-components@1.6.12
+  ```
+  This places the package in `.codernic/packages/@codernic/ui-components` inside the project root with BLAKE3 cryptographic sealing.
+
+---
+
+### ❌ Anti-Pattern 5: Bypassing Mobile Viewport Clamping on Dock Panels
+
+- **Prohibited:**
+  ```tsx
+  <DockAccordionPanel
+    mode="left"
+    expandMode="push"
+    defaultSize={450} // ❌ Overflows on 375px or 414px mobile viewports!
+  />
+  ```
+- **Why it Fails:**
+  Pushing 450px on a 375px mobile screen compresses the main content off-screen.
+- **Correct Solution:**
+  Rely on the built-in mobile clamping or specify responsive bounds:
+  ```tsx
+  <DockAccordionPanel
+    mode="left"
+    expandMode="push"
+    defaultSize={320}
+    minSize={200}
+    maxSize={500}
+  />
+  ```
+
+---
+
+### ❌ Anti-Pattern 6: Sub-44px Touch Targets on Mobile Touch Controls
+
+- **Prohibited:**
+  ```tsx
+  <button className="h-6 w-6 text-xs">Tap</button>
+  ```
+- **Why it Fails:**
+  Violates Mobile Layout Engine (LEM) touch ergonomics and fails Apple Human Interface / Material Design accessibility guidelines (`min-h-[44px]` touch target).
+- **Correct Solution:**
+  Use `min-h-[44px]` for mobile buttons or use native library molecules (`SegmentedControl`, `ActionSheet`, `ListItem`).
+
+---
+
+### ❌ Anti-Pattern 7: Reinventing Provided Widgets in Consumer Applications
+
+- **Prohibited:**
+  ```tsx
+  // ⛔ FORBIDDEN: Consumer app declaring raw HTML buttons, inputs, custom modals or bespoke cards
+  export function CustomAction() {
+    return <button className="custom-btn" onClick={...}>Submit</button>;
+  }
+  ```
+- **Why it Fails:**
+  Causes visual and architectural fragmentation, breaks dual-theme CSS token sync, bypasses accessibility (A11y/LEM touch targets), prevents centralized security/telemetry updates, and violates the Codernic Frontend Engineering Method (CFEM).
+- **Correct Solution:**
+  Import and mount official sovereign primitives directly from `@codernic/ui-components`:
+  ```tsx
+  import { Button, BaseInput, Modal, Card, SegmentedControl } from '@codernic/ui-components';
+
+  export function CustomAction() {
+    return <Button variant="primary" onClick={...}>Submit</Button>;
+  }
+  ```
+      ]]></anti_patterns>
+    </guide>
+  </cpk_guides>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

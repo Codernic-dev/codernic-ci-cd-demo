@@ -1,0 +1,44 @@
+==> COE INIT: Story 'bench-02-zero-copy-parser'
+==> COE PLAN: Generating physical artifacts for 'bench-02-zero-copy-parser'
+  [+] Ingesting BSF from: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-02-zero-copy-parser/bsf-master-bench-02-zero-copy-parser.sealed"
+  [+] Extracted 3 atomic implementation steps.
+  [+] DAG acyclicity validated: 3 steps ordered via Kahn algorithm.
+  [+] Master Implementation Manifest written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-02-zero-copy-parser/master_atomic_implementation_manifest.md"
+  [+] Dependency Graph (Mermaid) written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-02-zero-copy-parser/dependency_graph.md"
+  [+] Master File References written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-02-zero-copy-parser/master_file_references.md"
+  [+] Pre-generated 3 XML dispatch contracts.
+  [*] Locking AST Scaffolding: Creating clean compilable skeletons...
+  [+] AST Skeletons created: 3 new source files.
+  [*] Verifying AST Contract with cargo check...
+  [+] CompileGate AST Contract Locked: cargo check PASSED (0 errors).
+==> Story 'bench-02-zero-copy-parser' planning completed successfully.
+==> COE RUN: Starting autonomous execution engine for story 'bench-02-zero-copy-parser'
+[-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)
+==> COE RUN: Starting autonomous execution engine for story 'bench-02-zero-copy-parser'
+[-] Run execution failed: Execution error: git push failed: remote: error: GH013: Repository rule violations found for refs/heads/main.        
+remote: Review all repository rules at https://github.com/Codernic-dev/codernic-ci-cd-demo/rules?ref=refs%2Fheads%2Fmain        
+remote: 
+remote: - Cannot update this protected ref.        
+remote: 
+remote: - Changes must be made through a pull request.        
+remote: 
+remote: - Required status check "galileus-audit" is expected.        
+remote: 
+remote: - Commits must have verified signatures.        
+remote:   Found 12 violations (showing first 10):        
+remote: 
+remote:   05914579e629929b48559a151426bb95ad5d5c77        
+remote:   e7baab9b4b80ed7e9d00adc97e5ce2cbff3ee696        
+remote:   59d3f3e6f664c632abf04cedd76de73b9eb9a332        
+remote:   582e7a1e74a5775fa3dc9f880ceac9eecd6efd5c        
+remote:   9ef4d11c6c5f8670e703dc84e1926150f626ec2b        
+remote:   92ecf82680226a0ac878b572c31e8b2f53701bea        
+remote:   245972ea5ea525ba826efab730035c84225dbdea        
+remote:   f470d6155b8116898db8b223341db2095909650d        
+remote:   2ab681ddf433ab0a9e098ccb6bff980c46a94a8c        
+remote:   dd221657b572b21b5485529ba1c9749a16f00a13        
+remote: 
+To https://github.com/Codernic-dev/codernic-ci-cd-demo.git
+ ! [remote rejected] HEAD -> main (push declined due to repository rule violations)
+erreur : impossible de pousser des références vers 'https://github.com/Codernic-dev/codernic-ci-cd-demo.git'
+
