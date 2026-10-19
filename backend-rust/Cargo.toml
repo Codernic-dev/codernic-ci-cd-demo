@@ -8,3 +8,7 @@ edition = "2024"
 [[test]]
 name = "test_pay_ptp_benchmark_ptp"
 path = "tests/test_payment_engine_ptp.rs"
+
+[[test]]
+name = "test_pay_state_machine_ptp"
+path = "../tests/test_pay_state_machine_ptp.rs"
