@@ -1,0 +1,43 @@
+<!-- CODERNIC_BLAKE3_SEAL: 2ea32a90b3f718424653bb23b334d7205aa4d674c9545c829003fd374bb842e2 -->
+# Feature Specification Blueprint (FSB)
+## Niveau 6 : Antagoniste Extreme — Tri Topologique de Kahn et Cycles Recursifs
+
+```yaml
+story_slug: "bench-06-antagonistic-dag"
+version: "1.0.0"
+target_package: "backend-rust"
+category: "BENCHMARK_LEVEL_6_ANTAGONISTIC_STRESS"
+complexity: "EXTREME"
+estimated_steps: 4
+```
+
+### 1. Contexte & Enjeux
+
+Ce banc d'essai de stress maximal est specialement calibre pour eprouver les limites cognitives des LLMs et valider la resilience de la boucle de supervision contradictoire CCM v2.1.0 :
+- Implementation pure Rust standard (`std::collections::{HashMap, HashSet, VecDeque}`) d'un moteur de Graphe Oriente Acyclique (DAG).
+- Calcul du tri topologique selon l'algorithme de Kahn.
+- **Exigence Complexe** : En cas de presence de cycles, le moteur ne doit pas se limiter a un booleen d'echec. Il doit obligatoirement reconstruire et renvoyer le chemin ordonne exact formant la boucle circulaire (ex: `["NodeA", "NodeB", "NodeC", "NodeA"]`).
+- Interdiction totale de dependances externes (`petgraph`, `multimap`, `topological-sort` sont formellement bannies).
+
+### 2. Pieges & Modes d'Echec LLM Cibles
+
+1. **Hallucination de Graphes Tiers** : Tentative recurrente des modeles d'importer `petgraph::algo::toposort` ou `petgraph::graph::DiGraph`.
+2. **Piege d'Infinie Recursion & Fuite Memoire** : Tentative de modeliser le graphe avec des pointeurs partages `Rc<RefCell<Node>>` creant des fuites memoires cycliques et des paniques d'emprunt a l'execution.
+3. **Erreur d'Extraction du Cycle Minimal** : Incapacite frequente des LLMs a extraire correctement l'ordre exact du cycle (ils renvoient souvent l'ensemble des noeuds non resolus en vrac plutot que la boucle topologique exacte).
+4. **Declencheur de Supervision Contradictoire** : La subtilite algorithmique provoque typiquement un echec au test physique initial (Strike 1), forcant le declenchement du **Superviseur Contradictoire (Strike 2 : Break + Analyse Thèse/Antithèse + Hypothèses d'isolation)**.
+
+### 3. Table des Etapes Atomiques
+
+| Step ID | Code Slot | Target Files | Dependencies | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| STEP-DAG-CORE | dag_core_nodes | backend-rust/src/dag_nodes.rs | None | Structure de noeuds de dependances et stockage par identifiants |
+| STEP-DAG-KAHN | dag_kahn_solver | backend-rust/src/dag_solver.rs | STEP-DAG-CORE | Algorithme de Kahn pur std pour resolution lineaire ordonnee |
+| STEP-DAG-CYCLE | dag_cycle_tracer | backend-rust/src/dag_tracer.rs | STEP-DAG-KAHN | Algorithme de backtracking pour reconstruction de la boucle cyclique |
+| STEP-DAG-PTP | dag_antagonistic_ptp | backend-rust/tests/test_antagonistic_dag_ptp.rs | STEP-DAG-CYCLE | Suite de tests physiques adverses sur graphes denses et boucles complexes |
+
+### 4. Criteres de Verification CompileGate
+
+- Compilation stricte : `cargo check --target-dir target_cos` sans avertissement.
+- Invariants Pirsig : fichiers <= 200 lignes, fonctions <= 40 lignes, structures <= 8 champs.
+- Tests physiques adverses : validation sur graphes sans cycle, graphes en diamant, et graphes contenant des auto-references et cycles complexes a 5 noeuds.
+- Activation et verification du protocole 4-Strikes en cas d'erreur de logique algorithmique.

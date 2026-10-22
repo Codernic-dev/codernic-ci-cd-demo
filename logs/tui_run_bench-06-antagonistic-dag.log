@@ -1,0 +1,25 @@
+==> COE INIT: Story 'bench-06-antagonistic-dag'
+==> COE PLAN: Generating physical artifacts for 'bench-06-antagonistic-dag'
+  [+] Ingesting BSF from: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-06-antagonistic-dag/bsf-master-bench-06-antagonistic-dag.sealed"
+  [+] Extracted 4 atomic implementation steps.
+  [+] DAG acyclicity validated: 4 steps ordered via Kahn algorithm.
+  [+] Master Implementation Manifest written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-06-antagonistic-dag/master_atomic_implementation_manifest.md"
+  [+] Dependency Graph (Mermaid) written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-06-antagonistic-dag/dependency_graph.md"
+  [+] Master File References written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-06-antagonistic-dag/master_file_references.md"
+  [+] Pre-generated 4 XML dispatch contracts.
+  [*] Locking AST Scaffolding: Creating clean compilable skeletons...
+  [+] AST Skeletons created: 4 new source files.
+  [*] Verifying AST Contract with cargo check...
+  [+] CompileGate AST Contract Locked: cargo check PASSED (0 errors).
+==> Story 'bench-06-antagonistic-dag' planning completed successfully.
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+[-] Run execution failed: Execution error: Failed to spawn agy at "/home/tadeop/.local/bin/agy": Argument list too long (os error 7)
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+==> Story 'bench-06-antagonistic-dag' autonomous run completed successfully.
+    Verified steps: 4/4
+==> COE RUN: Starting autonomous execution engine for story 'bench-06-antagonistic-dag'
+==> Story 'bench-06-antagonistic-dag' autonomous run completed successfully.
+    Verified steps: 4/4

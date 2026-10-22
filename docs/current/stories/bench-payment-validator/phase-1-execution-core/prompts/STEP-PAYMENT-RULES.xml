@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-PAYMENT-RULES" code_slot="pay_antifraud_rules">
+  <metadata>
+    <step_id>STEP-PAYMENT-RULES</step_id>
+    <code_slot>pay_antifraud_rules</code_slot>
+    <story_slug>bench-payment-validator</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Moteur de regles de velocite et plafonds de transaction</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">backend-rust/src/antifraud.rs</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_pay_antifraud_rules_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+    <dependency>STEP-PAYMENT-TYPES</dependency>
+  </dependencies>
+
+  <upstream_files>
+    <file>backend-rust/src/types.rs</file>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[Dependencies satisfied: ["STEP-PAYMENT-TYPES"]. Code slot: pay_antifraud_rules
+
+Extracted Upstream Signatures:
+// File: backend-rust/src/types.rs
+pub enum Currency {
+pub fn from_code(code: &str) -> Option<Self> {
+pub fn code(&self) -> &'static str {
+pub fn minor_unit_decimals(&self) -> u8 {
+pub enum TxStatus {
+pub fn is_terminal(&self) -> bool {
+pub enum PaymentMethod {
+pub struct Money {
+pub fn new(amount_cents: u64, currency: Currency) -> Self {
+pub fn add(&self, other: &Self) -> Result<Self, String> {
+pub fn sub(&self, other: &Self) -> Result<Self, String> {
+pub struct PaymentTx {
+pub fn new(id: u64, account_id: u64, amount_cents: u64, currency: Currency) -> Self {
+pub fn settle(&mut self) {
+pub fn reject(&mut self) {
+pub fn is_settled(&self) -> bool {
+pub fn pay_core_types() {
+
+<commons_catalog></commons_catalog>]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'pay_antifraud_rules' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

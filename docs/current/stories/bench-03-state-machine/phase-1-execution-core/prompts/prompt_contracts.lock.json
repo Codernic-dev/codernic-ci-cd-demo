@@ -1,0 +1,8 @@
+{
+  "contracts_blake3": {
+    "STEP-SM-PTP": "a4a3f5b6460d76ce01448d1c8a906f90b5bdb6c46012dfcd074471bf764e5626",
+    "STEP-SM-REGISTRY": "99f984e7ff4479ce57fcfa9f3c7eb66aa82222feda2c3f43d5be9fe81640a6cc",
+    "STEP-SM-STATES": "feb74f4ba220a2136dc45c8cd31aabf106259a323a2e65659dbed19f4a8e03b2",
+    "STEP-SM-TRANSITIONS": "41ea04e76c321e21b20498f617b0f636c28ebd75aecda1efd3ace317fde79a98"
+  }
+}
