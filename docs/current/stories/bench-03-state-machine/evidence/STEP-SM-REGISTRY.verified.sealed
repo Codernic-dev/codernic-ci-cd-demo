@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: 276b277d239e00f1155463e850b64c943e3ce1fc0a796b6d2be14c979aea25fc -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 63,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-SM-REGISTRY",
+  "verified_at": "2026-10-19T08:04:44.836481885+00:00"
+}

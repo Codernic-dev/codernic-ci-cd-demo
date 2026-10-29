@@ -1,0 +1,43 @@
+{
+  "cos-orchestrator-hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "/home/tadeop/dev/codernic/bin/coe guard --event posttooluse --detect-story",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PreInvocation": [
+      {
+        "command": "/home/tadeop/dev/codernic/bin/coe guard --event preinvocation --detect-story",
+        "timeout": 10,
+        "type": "command"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "/home/tadeop/dev/codernic/bin/coe guard --event pretooluse --detect-story",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": "replace_file_content|write_to_file|run_command|execute_command"
+      }
+    ],
+    "Stop": [
+      {
+        "command": "/home/tadeop/dev/codernic/bin/coe guard --event stop --detect-story",
+        "timeout": 15,
+        "type": "command"
+      }
+    ],
+    "enabled": true
+  }
+}

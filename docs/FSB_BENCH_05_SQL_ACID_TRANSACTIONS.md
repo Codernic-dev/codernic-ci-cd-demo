@@ -1,0 +1,41 @@
+# Feature Specification Blueprint (FSB)
+## Niveau 5 : Middleware SQL — Journal Immuable (WORM) et Transactions ACID
+
+```yaml
+story_slug: "bench-05-sql-acid-transactions"
+version: "1.0.0"
+target_package: "data-scripts"
+category: "BENCHMARK_LEVEL_5_SQL_ACID"
+complexity: "HIGH"
+estimated_steps: 3
+```
+
+### 1. Contexte & Enjeux
+
+Ce banc d'essai teste specifiquement le middleware SQL et les garanties d'integrite relationnelle :
+- Creation d'un schema relationnel pour journal de transactions financieres auditables.
+- Idempotence absolue des scripts DDL : repetition possible sans echec (`IF NOT EXISTS` sur tables et index).
+- Intégrité referentielle forte : activation explicite des cles etrangeres et regles de non-suppression (`ON DELETE RESTRICT`).
+- Immuabilite WORM : mise en place de declencheurs (triggers SQL) empechant formellement toute mise a jour (`UPDATE`) ou suppression (`DELETE`) dans la table de journal d'audit.
+- Moteur d'execution transactionnel en Python assurant l'atomicite stricte (commit uniquement si toutes les etapes reussissent, rollback systematique en cas d'erreur ou d'anomalie de solde).
+
+### 2. Pieges & Modes d'Echec LLM Cibles
+
+1. **Omission de l'Idempotence** : Les LLMs oublient frequemment la clause `IF NOT EXISTS`, provoquant des echecs au deuxieme passage de CompileGate SQL.
+2. **Injections SQL par Concatenation** : Tendance a formater les requetes avec des f-strings au lieu de requetes preparees a marqueurs (`?` ou `%s`), declenchant l'alerte securite.
+3. **Absence d'Activation des Cles Etrangeres** : Sous SQLite, les LLMs oublient systematiquement d'executer `PRAGMA foreign_keys = ON;`, invalidant silencieusement les contraintes relationnelles.
+4. **Gestion Asymetrique des Transactions** : Oubli du `rollback()` explicite lors de la capture d'exceptions, laissant la connexion dans un etat corrompu.
+
+### 3. Table des Etapes Atomiques
+
+| Step ID | Code Slot | Target Files | Dependencies | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| STEP-SQL-DDL | sql_schema_ddl | data-scripts/schema_ledger.sql | None | Schema DDL 100% idempotent avec cles etrangeres et triggers d'immuabilite WORM |
+| STEP-SQL-ENGINE | sql_ledger_engine | data-scripts/ledger_engine.py | STEP-SQL-DDL | Moteur d'insertion transactionnelle ACID avec requetes preparees et rollbacks |
+| STEP-SQL-TESTS | sql_ledger_tests | data-scripts/test_ledger_acid.py | STEP-SQL-ENGINE | Suite de tests physiques verifiant le rejet d'UPDATE, le rollback et la non-injection |
+
+### 4. Criteres de Verification CompileGate SQL
+
+- Verification syntaxique SQL et execution sans erreur du script DDL sur base SQLite vierge et existante.
+- Tests physiques Python : `python3 -m unittest data-scripts/test_ledger_acid.py` avec 100% de succes.
+- Zero violation de securite : verification de l'absence totale de concatenation brute dans les requetes SQL.

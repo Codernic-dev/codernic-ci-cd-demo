@@ -1,0 +1,16 @@
+==> COE INIT: Story 'bench-01-core-probe'
+==> COE PLAN: Generating physical artifacts for 'bench-01-core-probe'
+  [+] Ingesting BSF from: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-01-core-probe/bsf-master-bench-01-core-probe.sealed"
+  [+] Extracted 2 atomic implementation steps.
+  [+] DAG acyclicity validated: 2 steps ordered via Kahn algorithm.
+  [+] Master Implementation Manifest written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-01-core-probe/master_atomic_implementation_manifest.md"
+  [+] Dependency Graph (Mermaid) written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-01-core-probe/dependency_graph.md"
+  [+] Master File References written: "/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo/docs/current/stories/bench-01-core-probe/master_file_references.md"
+  [+] Pre-generated 2 XML dispatch contracts.
+  [*] Locking AST Scaffolding: Creating clean compilable skeletons...
+  [+] AST Skeletons created: 2 new source files.
+  [*] Verifying AST Contract with cargo check...
+  [-] AST Scaffolding check FAILED:
+error: could not find `Cargo.toml` in `/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo` or any parent directory
+
+[-] Auto-plan error: AST Scaffolding check failed

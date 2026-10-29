@@ -1,0 +1,41 @@
+<!-- CODERNIC_BLAKE3_SEAL: ecccee770b2bcd1ff396c9b3d4cbf407e6c484ce1aafcdf6561e2bd8351bb805 -->
+# Feature Specification Blueprint (FSB)
+## Niveau 3 : Machine d'Etats Transactionnelle Concurrente (Lock-Free)
+
+```yaml
+story_slug: "bench-03-state-machine"
+version: "1.0.0"
+target_package: "backend-rust"
+category: "BENCHMARK_LEVEL_3_CONCURRENCY"
+complexity: "HIGH"
+estimated_steps: 4
+```
+
+### 1. Contexte & Enjeux
+
+Ce banc d'essai eprouve la robustesse de l'orchestrateur face a une logique metier hautement concurrente et critique :
+- Machine d'etats stricte pour transactions financieres : `Initiated` -> `Authorized` -> `Settled` ou `Cancelled` / `Disputed`.
+- Transitions consommatrices d'etats par valeur (`into_authorized`, etc.) pour interdire physiquement les doubles transitions a la compilation.
+- Registre atomique sans verrou (lock-free) base sur `std::sync::atomic::{AtomicU64, Ordering}` pour compter les operations et detecter toute double depense en environnement multi-thread.
+- Aucun ajout de crate externe autorise (`tokio`, `parking_lot`, `crossbeam` sont rigoureusement proscrits).
+
+### 2. Pieges & Modes d'Echec LLM Cibles
+
+1. **Hallucination de Crates Asynchrones** : Les LLMs ont le reflexe d'importer `tokio` ou `async-trait`, ce qui echouera immediatement au CompileGate.
+2. **Double Emprunt & Race Conditions** : Tendance a utiliser `Arc<Mutex<T>>` de maniere grossiere avec risque d'inversion d'acquisition de verrous, ou mauvaise utilisation des barrieres memoire `Ordering::Relaxed` au lieu de `SeqCst`.
+3. **Explosion Cyclomatique** : Tendance a generer des fonctions monolithiques de transition depassant la limite stricte de 40 lignes imposee par Pirsig.
+
+### 3. Table des Etapes Atomiques
+
+| Step ID | Code Slot | Target Files | Dependencies | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| STEP-SM-STATES | sm_state_types | backend-rust/src/state_types.rs | None | Types typographiques d'etats et preuves de transition |
+| STEP-SM-TRANSITIONS | sm_state_machine | backend-rust/src/state_machine.rs | STEP-SM-STATES | Moteur de transition consommatrice et validation d'invariants |
+| STEP-SM-REGISTRY | sm_atomic_registry | backend-rust/src/atomic_registry.rs | STEP-SM-TRANSITIONS | Registre de sequence concurrent lock-free pour audit |
+| STEP-SM-PTP | sm_concurrency_ptp | backend-rust/tests/test_state_machine_ptp.rs | STEP-SM-REGISTRY | Suite de tests physiques concurrents sous contention multi-thread |
+
+### 4. Criteres de Verification CompileGate
+
+- Compilation Rust sans avertissement : `cargo check --target-dir target_cos`.
+- Tests physiques : execution reussie de 10 threads concurrents tentant de faire transiter le meme etat, avec verification de la detection exacte de conflit.
+- Conformite aux regles Pirsig : toutes les fonctions <= 40 lignes, fichiers <= 200 lignes.

@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: 13ca857111e8f82f3d6097890580b1b603ab71803f7ea3a914ebbee5728c5a48 -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 120,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-SQL-DDL",
+  "verified_at": "2026-10-19T07:54:21.672449025+00:00"
+}

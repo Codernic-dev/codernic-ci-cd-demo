@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-SQL-DDL" code_slot="sql_schema_ddl">
+  <metadata>
+    <step_id>STEP-SQL-DDL</step_id>
+    <code_slot>sql_schema_ddl</code_slot>
+    <story_slug>bench-05-sql-acid-transactions</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Schema DDL 100% idempotent avec cles etrangeres et triggers d'immuabilite WORM</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">data-scripts/schema_ledger.sql</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_sql_schema_ddl_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+  </dependencies>
+
+  <upstream_files>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[Dependencies satisfied: []. Code slot: sql_schema_ddl
+
+<commons_catalog></commons_catalog>]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'sql_schema_ddl' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

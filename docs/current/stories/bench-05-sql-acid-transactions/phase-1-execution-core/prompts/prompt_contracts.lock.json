@@ -1,0 +1,7 @@
+{
+  "contracts_blake3": {
+    "STEP-SQL-DDL": "06ab39b3f0febdf5ac9758694492ca64a44fdefacf4cf9374da8ae8e8829d616",
+    "STEP-SQL-ENGINE": "2791010a91e8625f0ddbb4586da65c99c681721ea7414bab0d1d6155c0ab1f1f",
+    "STEP-SQL-TESTS": "2b2d4940ef66888eb9b8e85e9eeb8ab4e3cc04891d0fa8b0ce6faf8e8f8dc58b"
+  }
+}

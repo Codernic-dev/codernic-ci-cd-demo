@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: 070268a0fdc4144d0b8e7a7f79df75b2c315afc878c91d660d919048b80ef81f -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 194,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-SM-TRANSITIONS",
+  "verified_at": "2026-10-19T07:59:21.983467756+00:00"
+}
