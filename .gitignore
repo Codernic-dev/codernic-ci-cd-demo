@@ -2,3 +2,14 @@ node_modules/
 target/
 target_cos/
 **/target_cos/
+
+# Sovereign runtime, caches & databases (auto-standardized)
+.coe/
+.codernic/
+dist/
+.next/
+.turbo/
+*.redb
+*.db
+*.db-wal
+*.db-shm
