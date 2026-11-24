@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: df719a0f0fd173a449030fe02b65b717974a8318f3510f4788432e1bfd298d5b -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 61,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-DAG-KAHN",
+  "verified_at": "2026-10-19T07:57:41.786411488+00:00"
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-DAG-CYCLE" code_slot="dag_cycle_tracer">
+  <metadata>
+    <step_id>STEP-DAG-CYCLE</step_id>
+    <code_slot>dag_cycle_tracer</code_slot>
+    <story_slug>bench-06-antagonistic-dag</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Algorithme de backtracking pour reconstruction de la boucle cyclique</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">backend-rust/src/dag_tracer.rs</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_dag_cycle_tracer_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+    <dependency>STEP-DAG-KAHN</dependency>
+  </dependencies>
+
+  <upstream_files>
+    <file>backend-rust/src/dag_solver.rs</file>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[pub struct CycleTrace {
+pub fn new(path: Vec<NodeId>) -> Self {
+pub fn len(&self) -> usize {
+pub fn is_empty(&self) -> bool {
+pub fn is_closed(&self) -> bool {
+pub fn cycle_length(&self) -> usize {
+pub fn contains(&self, id: &NodeId) -> bool {
+pub fn canonical(&self) -> Vec<NodeId> {
+pub struct CycleTracer;
+pub fn has_cycle(store: &DagNodeStore) -> bool {
+pub fn find_cycle(store: &DagNodeStore) -> Option<CycleTrace> {
+pub fn trace_cycle_from(store: &DagNodeStore, start: NodeId) -> Option<CycleTrace> {
+pub fn find_all_cycles(store: &DagNodeStore) -> Vec<CycleTrace> {
+pub fn dag_cycle_tracer() {]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'dag_cycle_tracer' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

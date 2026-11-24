@@ -1,0 +1,8 @@
+[2026-10-19T04:10:44.039289493+00:00] EXEC: cargo clippy --workspace --all-targets --all-features --target-dir target_cos -- -D warnings
+--- STDOUT ---
+
+--- STDERR ---
+error: could not find `Cargo.toml` in `/home/tadeop/dev/Codernic-Workspace/codernic-ci-cd-demo` or any parent directory
+
+[EXIT CODE: 101 | DURATION: 455ms]
+

@@ -1,0 +1,47 @@
+[package]
+name = "backend-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[[test]]
+name = "test_pay_ptp_benchmark_ptp"
+path = "tests/test_payment_engine_ptp.rs"
+
+[[test]]
+name = "test_pay_state_machine_ptp"
+path = "../tests/test_pay_state_machine_ptp.rs"
+
+[[test]]
+name = "test_pay_core_types_ptp"
+path = "../tests/test_pay_core_types_ptp.rs"
+
+[[test]]
+name = "test_zc_parse_errors_ptp"
+path = "../tests/test_zc_parse_errors_ptp.rs"
+
+[[test]]
+name = "test_dag_core_nodes_ptp"
+path = "../tests/test_dag_core_nodes_ptp.rs"
+
+[[test]]
+name = "test_dag_cycle_tracer_ptp"
+path = "../tests/test_dag_cycle_tracer_ptp.rs"
+
+[[test]]
+name = "test_dag_antagonistic_ptp_ptp"
+path = "../tests/test_dag_antagonistic_ptp_ptp.rs"
+
+[[test]]
+name = "test_zc_parse_header_ptp"
+path = "../tests/test_zc_parse_header_ptp.rs"
+
+[[test]]
+name = "test_sm_state_types_ptp"
+path = "../tests/test_sm_state_types_ptp.rs"
+
+[[test]]
+name = "test_sm_concurrency_ptp_ptp"
+path = "../tests/test_sm_concurrency_ptp_ptp.rs"
+

@@ -1,0 +1,33 @@
+# Feature Specification Blueprint (FSB)
+## Payment Transaction Security Validator Engine
+
+```yaml
+story_slug: "bench-payment-validator"
+version: "1.0.0"
+target_package: "backend-rust"
+category: "BENCHMARK_MULTI_COMPLEXITY"
+complexity: "HIGH"
+estimated_steps: 4
+```
+
+### 1. Contexte & Enjeux
+
+Ce document sert de banc d'essai multi-complexite pour evaluer le cycle complet de l'orchestrateur Codernic COE :
+1. Niveau 1 (Simple) : Types de base, parsing de devises et montants entiers.
+2. Niveau 2 (Intermediaire) : Moteur de regles antifraude et validation cryptographique d'idempotence.
+3. Niveau 3 (Complexe) : Machine d'approbation transactionnelle, detection d'anomalies temporelles et tests physiques.
+
+### 2. Table des Etapes Atomiques
+
+| Step ID | Code Slot | Target Files | Dependencies | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| STEP-PAYMENT-TYPES | pay_core_types | backend-rust/src/types.rs | None | Types fondamentaux de paiement et devises |
+| STEP-PAYMENT-RULES | pay_antifraud_rules | backend-rust/src/antifraud.rs | STEP-PAYMENT-TYPES | Moteur de regles de velocite et plafonds de transaction |
+| STEP-PAYMENT-ENGINE | pay_state_machine | backend-rust/src/engine.rs | STEP-PAYMENT-RULES | Machine d'approbation et journalisation d'audit |
+| STEP-PAYMENT-BENCH | pay_ptp_benchmark | backend-rust/tests/test_payment_engine_ptp.rs | STEP-PAYMENT-ENGINE | Suite complete de tests physiques de validation et de charge |
+
+### 3. Criteres de Verification CompileGate
+
+- Compilation stricte : `cargo check` avec zero avertissement.
+- Tests unitaires et physiques passant sans echec.
+- Respect absolu des regles de souverainete Pirsig (maximum 200 lignes par fichier, maximum 40 lignes par fonction).

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-FE-TYPES" code_slot="fe_audit_types">
+  <metadata>
+    <step_id>STEP-FE-TYPES</step_id>
+    <code_slot>fe_audit_types</code_slot>
+    <story_slug>bench-04-frontend-governance</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Interfaces TypeScript strictes sans aucun recours a `any`</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">frontend-react/src/types_audit.ts</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_fe_audit_types_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+  </dependencies>
+
+  <upstream_files>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[Dependencies satisfied: []. Code slot: fe_audit_types
+
+<commons_catalog></commons_catalog>]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'fe_audit_types' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

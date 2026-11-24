@@ -1,0 +1,7 @@
+{
+  "compilegate": "PASSED",
+  "duration_ms": 120,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-SQL-DDL",
+  "verified_at": "2026-10-19T07:54:21.672449025+00:00"
+}

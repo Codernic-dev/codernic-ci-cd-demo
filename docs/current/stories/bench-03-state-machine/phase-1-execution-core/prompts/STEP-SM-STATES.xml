@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codernic_dispatch_contract version="2.0.0" step_id="STEP-SM-STATES" code_slot="sm_state_types">
+  <metadata>
+    <step_id>STEP-SM-STATES</step_id>
+    <code_slot>sm_state_types</code_slot>
+    <story_slug>bench-03-state-machine</story_slug>
+    <phase_slug>phase-1-execution-core</phase_slug>
+    <description>Types typographiques d'etats et preuves de transition</description>
+  </metadata>
+
+  <scope>
+    <target_files>
+      <file action="IMPLEMENT">backend-rust/src/state_types.rs</file>
+    </target_files>
+    <test_files>
+      <file action="CREATE_OR_VERIFY">tests/test_sm_state_types_ptp.rs</file>
+    </test_files>
+    <forbidden_paths>
+      <path>crates/frameworks/*</path>
+      <path>apps/*</path>
+    </forbidden_paths>
+  </scope>
+
+  <dependencies>
+  </dependencies>
+
+  <upstream_files>
+  </upstream_files>
+
+  <upstream_contract>
+    <![CDATA[pub enum StateStatus { Created, Running, Paused, Completed, Failed }
+pub trait State: 'static + Send + Sync + std::fmt::Debug + Clone + PartialEq + Eq {
+pub struct $struct_name;
+pub trait ValidTransition<Target: State>: State {}
+pub struct TransitionProof<S: State, T: State> {
+pub fn new(step_number: u32, reason: impl Into<String>) -> Self where S: ValidTransition<T> {
+pub fn from_status(&self) -> StateStatus { S::status() }
+pub fn to_status(&self) -> StateStatus { T::status() }
+pub fn reason(&self) -> &str { &self.reason }
+pub struct TransitionRecord {
+pub struct TransitionLog { records: Vec<TransitionRecord> }
+pub fn new() -> Self { Self { records: Vec::new() } }
+pub fn len(&self) -> usize { self.records.len() }
+pub fn is_empty(&self) -> bool { self.records.is_empty() }
+pub fn records(&self) -> &[TransitionRecord] { &self.records }
+pub fn record<S: State, T: State>(&mut self, proof: &TransitionProof<S, T>) {
+pub fn is_consistent(&self) -> bool {
+pub struct StateMachine<S: State> {
+pub fn new(id: u64, payload: impl Into<String>) -> Self {
+pub fn start(self, reason: impl Into<String>) -> (StateMachine<RunningState>, TransitionProof<CreatedState, RunningState>) {
+pub fn pause(self, reason: impl Into<String>) -> (StateMachine<PausedState>, TransitionProof<RunningState, PausedState>) {
+pub fn complete(self, reason: impl Into<String>) -> (StateMachine<CompletedState>, TransitionProof<RunningState, CompletedState>) {
+pub fn fail(self, reason: impl Into<String>) -> (StateMachine<FailedState>, TransitionProof<RunningState, FailedState>) {
+pub fn resume(self, reason: impl Into<String>) -> (StateMachine<RunningState>, TransitionProof<PausedState, RunningState>) {
+pub fn abort(self, reason: impl Into<String>) -> (StateMachine<FailedState>, TransitionProof<PausedState, FailedState>) {]]>
+  </upstream_contract>
+
+  <ptp_invariants>
+    <![CDATA[PTP: Validate slot 'sm_state_types' via assert_eq!.
+Pirsig & Ockham Zero-Shot Rules:
+- Invariants: <= 200 lines/file, <= 40 lines/fn, <= 8 fields/struct.
+- DLP rule: NEVER write single-uppercase-plus-two-digits literals.
+- Build flags: always compile with --target-dir target_cos.
+- No exploratory grep when contract is provided.]]>
+  </ptp_invariants>
+
+  <quality_gates>
+    <gate id="clippy_zero_warnings">cargo clippy --workspace --all-targets --all-features -- -D warnings</gate>
+    <gate id="anti_vaporware">Zero vaporware in production paths</gate>
+    <gate id="ptp_physical_tests">Physical test suite passage with exit code 0</gate>
+  </quality_gates>
+</codernic_dispatch_contract>

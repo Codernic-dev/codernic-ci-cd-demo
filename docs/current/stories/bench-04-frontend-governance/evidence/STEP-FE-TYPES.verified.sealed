@@ -1,0 +1,9 @@
+<!-- CODERNIC_BLAKE3_SEAL: 315d9d905ffd2131aad1809189c078347e080193d7a16a793d2c88aea15d61f2 algo: hmac_blake3 -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 20,
+  "scope_guard": "PASSED",
+  "seal_algorithm": "hmac_blake3",
+  "step_id": "STEP-FE-TYPES",
+  "verified_at": "2026-10-19T13:49:35.635734924+00:00"
+}

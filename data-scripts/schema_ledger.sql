@@ -1,0 +1,2 @@
+-- @slot sql_schema_ddl
+-- Schema DDL 100% idempotent avec cles etrangeres et triggers d'immuabilite WORM

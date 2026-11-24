@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: 51188b64a7ae4b62efdcf2d018b2bc659f86630c9f246e06206edaa3888a9721 -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 124,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-ZC-PAYLOAD",
+  "verified_at": "2026-10-19T07:57:55.673912125+00:00"
+}

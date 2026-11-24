@@ -1,0 +1,8 @@
+<!-- CODERNIC_BLAKE3_SEAL: 4911ebc35023a26309ec15090034e99503574d9bde2d3a287ee6678c22192542 -->
+{
+  "compilegate": "PASSED",
+  "duration_ms": 132,
+  "scope_guard": "PASSED",
+  "step_id": "STEP-PAYMENT-RULES",
+  "verified_at": "2026-10-19T07:57:57.390604269+00:00"
+}

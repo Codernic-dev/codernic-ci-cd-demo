@@ -1,0 +1,8 @@
+{
+  "compilegate": "PASSED",
+  "duration_ms": 176,
+  "scope_guard": "PASSED",
+  "seal_algorithm": "hmac_blake3",
+  "step_id": "STEP-DAG-PTP",
+  "verified_at": "2026-10-19T12:50:50.374615644+00:00"
+}

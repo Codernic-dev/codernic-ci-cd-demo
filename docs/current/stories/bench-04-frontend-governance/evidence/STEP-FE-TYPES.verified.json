@@ -1,0 +1,8 @@
+{
+  "compilegate": "PASSED",
+  "duration_ms": 20,
+  "scope_guard": "PASSED",
+  "seal_algorithm": "hmac_blake3",
+  "step_id": "STEP-FE-TYPES",
+  "verified_at": "2026-10-19T13:49:35.635734924+00:00"
+}
